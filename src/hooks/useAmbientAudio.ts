@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 
-type AmbientSound = "rain" | "wind" | "fire" | "thunder" | "owl" | "pages" | "bells" | "pad";
+type AmbientSound = "rain" | "wind" | "fire" | "thunder" | "owl" | "pages" | "bells" | "pad" | "hedwig";
 
 interface AmbientSoundConfig {
   gain?: number;
@@ -8,14 +8,15 @@ interface AmbientSoundConfig {
 }
 
 const SOUND_CONFIGS: Record<AmbientSound, AmbientSoundConfig> = {
-  rain: { gain: 0.008 },
-  wind: { gain: 0.005 },
-  fire: { gain: 0.006 },
-  thunder: { gain: 0.04, duration: 3 },
-  owl: { gain: 0.015, duration: 1.5 },
-  pages: { gain: 0.003, duration: 0.4 },
-  bells: { gain: 0.012, duration: 2.5 },
-  pad: { gain: 0.004 },
+  rain: { gain: 0.035 },
+  wind: { gain: 0.02 },
+  fire: { gain: 0.03 },
+  thunder: { gain: 0.12, duration: 3.5 },
+  owl: { gain: 0.04, duration: 1.5 },
+  pages: { gain: 0.01, duration: 0.4 },
+  bells: { gain: 0.035, duration: 3 },
+  pad: { gain: 0.018 },
+  hedwig: { gain: 0.06, duration: 25 },
 };
 
 function createNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
@@ -27,79 +28,6 @@ function createNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
     data[i] = Math.random() * 2 - 1;
   }
   return buffer;
-}
-
-function createSoftNoise(ctx: AudioContext, duration: number, config: {
-  filterType: BiquadFilterType;
-  filterFreq: number;
-  filterQ: number;
-  gain: number;
-  loop?: boolean;
-  detune?: number;
-}) {
-  const buffer = createNoiseBuffer(ctx, duration + 1);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.loop = config.loop !== false;
-  source.playbackRate.value = 0.7 + (config.detune || 0);
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = config.filterType;
-  filter.frequency.value = config.filterFreq;
-  filter.Q.value = config.filterQ;
-
-  const gain = ctx.createGain();
-  gain.gain.value = config.gain;
-
-  // Gentle fade in/out
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(config.gain, ctx.currentTime + 2);
-  gain.gain.linearRampToValueAtTime(config.gain, ctx.currentTime + duration - 2);
-  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
-
-  source.connect(filter);
-  filter.connect(gain);
-
-  return { source, nodes: [source, filter, gain] };
-}
-
-function createOrchestralPad(ctx: AudioContext, duration: number, gain: number) {
-  // D minor chord — very Hogwarts
-  const frequencies = [146.83, 174.61, 220, 293.66]; // D3, F3, A3, D4
-  const nodes: AudioNode[] = [];
-  const masterGain = ctx.createGain();
-  masterGain.gain.value = 0;
-  masterGain.gain.linearRampToValueAtTime(gain, ctx.currentTime + 3);
-  masterGain.gain.linearRampToValueAtTime(gain, ctx.currentTime + duration - 3);
-  masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
-  nodes.push(masterGain);
-
-  frequencies.forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    osc.detune.value = (Math.random() - 0.5) * 8;
-
-    const oscGain = ctx.createGain();
-    oscGain.gain.value = 0.25 - i * 0.04;
-
-    // Gentle vibrato
-    const lfo = ctx.createOscillator();
-    lfo.type = "sine";
-    lfo.frequency.value = 2.5 + Math.random() * 1.5;
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 2;
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-    lfo.start();
-
-    osc.connect(oscGain);
-    oscGain.connect(masterGain);
-    osc.start();
-    nodes.push(osc, lfo, oscGain);
-  });
-
-  return { nodes };
 }
 
 export function useAmbientAudio() {
@@ -143,162 +71,265 @@ export function useAmbientAudio() {
     const ctx = getContext();
     const config = SOUND_CONFIGS[sound];
     const soundId = id || `${sound}-${Date.now()}`;
-    const duration = config.duration || 8;
+    const duration = config.duration || 10;
 
     stopSound(soundId);
     const allNodes: AudioNode[] = [];
     const sources: AudioBufferSourceNode[] = [];
     const masterGain = ctx.createGain();
     masterGain.gain.value = 0;
+    masterGain.gain.linearRampToValueAtTime(config.gain!, ctx.currentTime + 1.5);
     allNodes.push(masterGain);
 
     if (sound === "rain") {
-      // Soft rain — high freq filtered, very gentle
-      const noise = createSoftNoise(ctx, duration, {
-        filterType: "lowpass",
-        filterFreq: 2500,
-        filterQ: 0.3,
-        gain: config.gain!,
-        loop: true,
-      });
-      noise.source.connect(masterGain);
-      sources.push(noise.source);
-      allNodes.push(...noise.nodes);
+      const buffer = createNoiseBuffer(ctx, duration + 1);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.playbackRate.value = 0.8;
+      const f = ctx.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 2800;
+      f.Q.value = 0.4;
+      src.connect(f);
+      f.connect(masterGain);
+      sources.push(src);
+      allNodes.push(src, f);
 
-      // Secondary layer — trickling
-      const trickling = createSoftNoise(ctx, duration, {
-        filterType: "bandpass",
-        filterFreq: 1800,
-        filterQ: 0.8,
-        gain: config.gain! * 0.4,
-        loop: true,
-        detune: 0.15,
-      });
-      trickling.source.connect(masterGain);
-      sources.push(trickling.source);
-      allNodes.push(...trickling.nodes);
+      // Trickling layer
+      const src2 = ctx.createBufferSource();
+      src2.buffer = buffer;
+      src2.loop = true;
+      src2.playbackRate.value = 1.1;
+      const f2 = ctx.createBiquadFilter();
+      f2.type = "bandpass";
+      f2.frequency.value = 2000;
+      f2.Q.value = 0.7;
+      const g2 = ctx.createGain();
+      g2.gain.value = 0.4;
+      src2.connect(f2);
+      f2.connect(g2);
+      g2.connect(masterGain);
+      sources.push(src2);
+      allNodes.push(src2, f2, g2);
 
     } else if (sound === "wind") {
-      // Gentle wind — low, sweeping
-      const wind = createSoftNoise(ctx, duration, {
-        filterType: "lowpass",
-        filterFreq: 600,
-        filterQ: 0.2,
-        gain: config.gain!,
-        loop: true,
-      });
-      // Slow LFO on filter for sweeping
+      const buffer = createNoiseBuffer(ctx, duration + 1);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.playbackRate.value = 0.6;
+      const f = ctx.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 700;
+      f.Q.value = 0.25;
+      // LFO sweep
       const lfo = ctx.createOscillator();
       lfo.type = "sine";
-      lfo.frequency.value = 0.08;
-      const lfoGain = ctx.createGain();
-      lfoGain.gain.value = 300;
-      lfo.connect(lfoGain);
-      lfoGain.connect((wind.nodes[1] as BiquadFilterNode).frequency);
+      lfo.frequency.value = 0.1;
+      const lfoG = ctx.createGain();
+      lfoG.gain.value = 350;
+      lfo.connect(lfoG);
+      lfoG.connect(f.frequency);
       lfo.start();
-      allNodes.push(lfo, lfoGain);
-
-      wind.source.connect(masterGain);
-      sources.push(wind.source);
-      allNodes.push(...wind.nodes);
+      src.connect(f);
+      f.connect(masterGain);
+      sources.push(src);
+      allNodes.push(src, f, lfo, lfoG);
 
     } else if (sound === "fire") {
-      // Soft crackling
-      const crackle = createSoftNoise(ctx, duration, {
-        filterType: "bandpass",
-        filterFreq: 350,
-        filterQ: 1.2,
-        gain: config.gain!,
-        loop: true,
-      });
-      crackle.source.connect(masterGain);
-      sources.push(crackle.source);
-      allNodes.push(...crackle.nodes);
+      const buffer = createNoiseBuffer(ctx, duration + 1);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.playbackRate.value = 0.9;
+      const f = ctx.createBiquadFilter();
+      f.type = "bandpass";
+      f.frequency.value = 400;
+      f.Q.value = 1;
+      src.connect(f);
+      f.connect(masterGain);
+      sources.push(src);
+      allNodes.push(src, f);
 
-      // Low rumble
-      const rumble = createSoftNoise(ctx, duration, {
-        filterType: "lowpass",
-        filterFreq: 150,
-        filterQ: 0.5,
-        gain: config.gain! * 0.5,
-        loop: true,
-        detune: 0.6,
-      });
-      rumble.source.connect(masterGain);
-      sources.push(rumble.source);
-      allNodes.push(...rumble.nodes);
+      // Rumble
+      const src2 = ctx.createBufferSource();
+      src2.buffer = buffer;
+      src2.loop = true;
+      src2.playbackRate.value = 0.5;
+      const f2 = ctx.createBiquadFilter();
+      f2.type = "lowpass";
+      f2.frequency.value = 180;
+      f2.Q.value = 0.4;
+      const g2 = ctx.createGain();
+      g2.gain.value = 0.5;
+      src2.connect(f2);
+      f2.connect(g2);
+      g2.connect(masterGain);
+      sources.push(src2);
+      allNodes.push(src2, f2, g2);
 
     } else if (sound === "thunder") {
-      const thunder = createSoftNoise(ctx, duration, {
-        filterType: "lowpass",
-        filterFreq: 300,
-        filterQ: 0.15,
-        gain: config.gain!,
-      });
-      thunder.source.connect(masterGain);
-      sources.push(thunder.source);
-      allNodes.push(...thunder.nodes);
+      const buffer = createNoiseBuffer(ctx, duration + 1);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const f = ctx.createBiquadFilter();
+      f.type = "lowpass";
+      f.frequency.value = 350;
+      f.Q.value = 0.15;
+      src.connect(f);
+      f.connect(masterGain);
+      sources.push(src);
+      allNodes.push(src, f);
 
     } else if (sound === "owl") {
-      // Two-note hoot — more realistic
       [0, 0.35].forEach((delay, i) => {
         const osc = ctx.createOscillator();
         osc.type = "sine";
         osc.frequency.value = i === 0 ? 440 : 370;
-
-        const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(0, ctx.currentTime + delay);
-        oscGain.gain.linearRampToValueAtTime(config.gain!, ctx.currentTime + delay + 0.08);
-        oscGain.gain.linearRampToValueAtTime(config.gain! * 0.7, ctx.currentTime + delay + 0.3);
-        oscGain.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.6);
-
-        osc.connect(oscGain);
-        oscGain.connect(masterGain);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(config.gain!, ctx.currentTime + delay + 0.06);
+        g.gain.linearRampToValueAtTime(config.gain! * 0.6, ctx.currentTime + delay + 0.25);
+        g.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.55);
+        osc.connect(g);
+        g.connect(masterGain);
         osc.start(ctx.currentTime + delay);
-        osc.stop(ctx.currentTime + delay + 0.7);
-        allNodes.push(osc, oscGain);
+        osc.stop(ctx.currentTime + delay + 0.6);
+        allNodes.push(osc, g);
       });
 
     } else if (sound === "bells") {
-      // Soft chime
       [0, 0.5, 1].forEach((delay, i) => {
         const osc = ctx.createOscillator();
         osc.type = "sine";
-        osc.frequency.value = [523, 659, 784][i]; // C5, E5, G5
-
-        const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(0, ctx.currentTime + delay);
-        oscGain.gain.linearRampToValueAtTime(config.gain! * 0.6, ctx.currentTime + delay + 0.05);
-        oscGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 1.5);
-
-        osc.connect(oscGain);
-        oscGain.connect(masterGain);
+        osc.frequency.value = [523, 659, 784][i];
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(config.gain! * 0.7, ctx.currentTime + delay + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 1.8);
+        osc.connect(g);
+        g.connect(masterGain);
         osc.start(ctx.currentTime + delay);
-        osc.stop(ctx.currentTime + delay + 1.6);
-        allNodes.push(osc, oscGain);
+        osc.stop(ctx.currentTime + delay + 2);
+        allNodes.push(osc, g);
       });
 
     } else if (sound === "pad") {
-      const pad = createOrchestralPad(ctx, duration, config.gain!);
-      allNodes.push(...pad.nodes);
+      // D minor pad — D3, F3, A3, D4
+      [146.83, 174.61, 220, 293.66].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        osc.detune.value = (Math.random() - 0.5) * 6;
+        const g = ctx.createGain();
+        g.gain.value = 0.3 - i * 0.05;
+        const lfo = ctx.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 2.5 + Math.random();
+        const lfoG = ctx.createGain();
+        lfoG.gain.value = 2;
+        lfo.connect(lfoG);
+        lfoG.connect(osc.frequency);
+        lfo.start();
+        osc.connect(g);
+        g.connect(masterGain);
+        osc.start();
+        allNodes.push(osc, g, lfo, lfoG);
+      });
+
+    } else if (sound === "hedwig") {
+      // Hedwig's Theme melody — celesta-like timbre
+      // Notes: B4 E5 G5 F#5 E5 B4 A4 F#4 E5 G5 F#5 D#5 F#4 B4 E5 G5 F#5 D#5 F#4 B4 A4
+      const melody: [number, number][] = [
+        [493.88, 0.35],  // B4
+        [659.25, 0.7],   // E5
+        [783.99, 0.35],  // G5
+        [739.99, 0.7],   // F#5
+        [659.25, 0.35],  // E5
+        [493.88, 0.7],   // B4
+        [440.00, 0.35],  // A4
+        [369.99, 0.7],   // F#4
+        [329.63, 0.35],  // E4
+        [392.00, 0.35],  // G4
+        [369.99, 0.7],   // F#4
+        [311.13, 0.35],  // D#4
+        [369.99, 0.35],  // F#4
+        [493.88, 0.7],   // B4
+        [659.25, 0.35],  // E5
+        [783.99, 0.35],  // G5
+        [739.99, 0.7],   // F#5
+        [659.25, 0.35],  // E5
+        [493.88, 0.7],   // B4
+        [440.00, 0.35],  // A4
+        [369.99, 0.7],   // F#4
+      ];
+
+      let time = ctx.currentTime + 0.5;
+
+      melody.forEach(([freq, dur]) => {
+        // Main tone
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+
+        // Harmonic for celesta shimmer
+        const osc2 = ctx.createOscillator();
+        osc2.type = "sine";
+        osc2.frequency.value = freq * 2;
+        const g2 = ctx.createGain();
+        g2.gain.value = 0.15;
+
+        // Third harmonic — bell-like
+        const osc3 = ctx.createOscillator();
+        osc3.type = "sine";
+        osc3.frequency.value = freq * 3;
+        const g3 = ctx.createGain();
+        g3.gain.value = 0.06;
+
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0, time);
+        env.gain.linearRampToValueAtTime(1, time + 0.02);
+        env.gain.setValueAtTime(0.7, time + 0.08);
+        env.gain.exponentialRampToValueAtTime(0.001, time + dur + 0.4);
+
+        osc.connect(env);
+        osc2.connect(g2);
+        g2.connect(env);
+        osc3.connect(g3);
+        g3.connect(env);
+        env.connect(masterGain);
+
+        osc.start(time);
+        osc.stop(time + dur + 0.5);
+        osc2.start(time);
+        osc2.stop(time + dur + 0.5);
+        osc3.start(time);
+        osc3.stop(time + dur + 0.5);
+
+        allNodes.push(osc, osc2, g2, osc3, g3, env);
+        time += dur;
+      });
 
     } else if (sound === "pages") {
-      const pages = createSoftNoise(ctx, duration, {
-        filterType: "highpass",
-        filterFreq: 3000,
-        filterQ: 0.4,
-        gain: config.gain!,
-      });
-      pages.source.connect(masterGain);
-      sources.push(pages.source);
-      allNodes.push(...pages.nodes);
+      const buffer = createNoiseBuffer(ctx, duration + 1);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const f = ctx.createBiquadFilter();
+      f.type = "highpass";
+      f.frequency.value = 3500;
+      f.Q.value = 0.5;
+      src.connect(f);
+      f.connect(masterGain);
+      sources.push(src);
+      allNodes.push(src, f);
     }
 
     masterGain.connect(ctx.destination);
     activeNodes.current.set(soundId, { nodes: allNodes, sources });
 
     if (config.duration) {
-      setTimeout(() => stopSound(soundId), (config.duration + 1) * 1000);
+      setTimeout(() => stopSound(soundId), (config.duration + 2) * 1000);
     }
 
     return soundId;

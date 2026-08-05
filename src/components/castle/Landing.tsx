@@ -94,7 +94,9 @@ export function Landing({ onComplete }: LandingProps) {
       audio.playLoop("rain");
       audio.playLoop("wind");
     } else if (phase === "owl-flyby") {
+      audio.stopLoop("fire");
       audio.playSound("owl");
+      audio.playSound("hedwig");
     } else if (phase === "great-hall") {
       audio.stopLoop("rain");
       audio.stopLoop("wind");
