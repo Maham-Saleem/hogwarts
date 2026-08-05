@@ -14,10 +14,14 @@ export function Landing() {
   const [letterText, setLetterText] = useState("");
   const fullLetter = `Dear Student,\n\nWe are pleased to inform you that you have been accepted at Hogwarts School of Witchcraft and Wizardry.\n\nPlease find enclosed a list of all necessary books and equipment.\n\nTerm begins on September 1st.\n\nYours sincerely,\nMinerva McGonagall\nDeputy Headmistress`;
 
-  // Auto-progress through rain phase
+  // Auto-progress through phases
   useEffect(() => {
     if (phase === "rain") {
       const t = setTimeout(() => setPhase("owl"), 3000);
+      return () => clearTimeout(t);
+    }
+    if (phase === "owl") {
+      const t = setTimeout(() => setPhase("seal"), 2200);
       return () => clearTimeout(t);
     }
   }, [phase]);
