@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CastleMap } from "@/components/navigation/CastleMap";
+import CastleMap from "@/components/navigation/CastleMap";
 import { ProgressTracker } from "@/components/ui/ProgressTracker";
 import { useAudio } from "@/context/AudioContext";
 import { useDiscovery } from "@/context/DiscoveryContext";

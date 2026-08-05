@@ -1,17 +1,19 @@
 export type RoomId =
-  | "entrance-hall"
   | "great-hall"
   | "library"
   | "grand-staircase"
+  | "courtyard"
   | "astronomy-tower"
+  | "headmasters-office"
+  | "common-room"
   | "potion-laboratory"
   | "greenhouses"
-  | "owl-tower"
   | "forbidden-forest"
-  | "common-room"
-  | "courtyard"
-  | "headmasters-office"
+  | "owlery"
+  | "room-of-requirement"
   | "secret-chamber";
+
+export type TransitionType = "door" | "stairs" | "corridor" | "fade" | "parchment";
 
 export interface Room {
   id: RoomId;
@@ -23,8 +25,10 @@ export interface Room {
   ambientEffects: AmbientEffect[];
   interactiveElements: InteractiveElement[];
   secrets: Secret[];
+  connections: { target: RoomId; label: string; transition: TransitionType; direction: "left" | "right" | "forward" | "up" | "down" | "back" }[];
   quote?: string;
-  unlocked: boolean;
+  starter: boolean;
+  unlockRequires?: string;
 }
 
 export type AmbientEffect =
@@ -37,11 +41,12 @@ export type AmbientEffect =
 
 export interface InteractiveElement {
   id: string;
-  type: "candle" | "book" | "door" | "painting" | "potion" | "chest" | "rune" | "switch" | "statue" | "fireplace" | "telescope" | "cauldron" | "scroll" | "mirror";
+  type: "candle" | "book" | "door" | "painting" | "potion" | "chest" | "rune" | "switch" | "statue" | "fireplace" | "telescope" | "cauldron" | "scroll" | "mirror" | "gargoyle" | "chandelier";
   name: string;
   description: string;
   position: { x: number; y: number };
   interaction: string;
+  unlocksRoom?: RoomId;
 }
 
 export interface Secret {
@@ -53,20 +58,17 @@ export interface Secret {
 }
 
 export interface Discovery {
-  id: string;
   roomId: string;
   secretId: string;
   discoveredAt: number;
 }
 
 export interface GameState {
-  currentRoom: RoomId | null;
   discoveries: Discovery[];
   unlockedRooms: RoomId[];
   inventory: string[];
-  totalSecrets: number;
-  discoveredSecrets: number;
+  visitedRooms: RoomId[];
+  interactedElements: string[];
 }
 
-export type LandingPhase = "rain" | "letter" | "seal" | "unfold" | "boat" | "approach" | "doors" | "entering" | "done";
-export type WeatherType = "clear" | "rain" | "storm" | "fog";
+export type LandingPhase = "rain" | "owl" | "seal" | "letter" | "boat" | "approach" | "doors" | "done";

@@ -1,92 +1,116 @@
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { Discovery, RoomId } from "@/types";
-import { TOTAL_SECRETS } from "@/data/rooms";
+import type { RoomId, GameState } from "@/types";
+import { rooms, STARTER_ROOMS, TOTAL_SECRETS } from "@/data/rooms";
 
 interface DiscoveryContextValue {
-  discoveries: Discovery[];
-  discoveredIds: Set<string>;
-  discoveredCount: number;
-  totalSecrets: number;
-  discover: (roomId: string, secretId: string) => boolean;
-  isDiscovered: (secretId: string) => boolean;
-  unlockedRooms: RoomId[];
-  unlockRoom: (roomId: RoomId) => void;
-  isRoomUnlocked: (roomId: RoomId) => boolean;
-  inventory: string[];
-  addToInventory: (item: string) => void;
-  visitedRooms: Set<RoomId>;
-  visitRoom: (roomId: RoomId) => void;
-  resetProgress: () => void;
-}
-
-const Ctx = createContext<DiscoveryContextValue | null>(null);
-
-interface PersistedState {
-  discoveries: Discovery[];
+  discoveries: { roomId: string; secretId: string; discoveredAt: number }[];
   unlockedRooms: RoomId[];
   inventory: string[];
   visitedRooms: RoomId[];
+  discoveredCount: number;
+  totalSecrets: number;
+  hasDiscovered: (roomId: string, secretId: string) => boolean;
+  addDiscovery: (roomId: string, secretId: string) => void;
+  visitRoom: (roomId: RoomId) => void;
+  isRoomUnlocked: (roomId: RoomId) => boolean;
+  getRoomUnlockHint: (roomId: RoomId) => string | undefined;
+  unlockRoom: (roomId: RoomId) => void;
+  addToInventory: (item: string) => void;
+  hasInInventory: (item: string) => boolean;
 }
 
-function loadState(): PersistedState {
+const DiscoveryContext = createContext<DiscoveryContextValue | null>(null);
+
+const STORAGE_KEY = "explore-hogwarts-discoveries";
+
+function loadState(): Partial<GameState> {
   try {
-    const raw = localStorage.getItem("hogwarts.explore");
-    return raw ? JSON.parse(raw) : { discoveries: [], unlockedRooms: ["entrance-hall", "great-hall", "library", "grand-staircase", "common-room"] as RoomId[], inventory: [], visitedRooms: [] as RoomId[] };
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
   } catch {
-    return { discoveries: [], unlockedRooms: ["entrance-hall", "great-hall", "library", "grand-staircase", "common-room"], inventory: [], visitedRooms: [] };
+    // ignore parse errors
   }
+  return {};
 }
 
 export function DiscoveryProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PersistedState>(loadState);
+  const saved = loadState();
+  const [discoveries, setDiscoveries] = useState<{ roomId: string; secretId: string; discoveredAt: number }[]>(saved.discoveries || []);
+  const [unlockedRooms, setUnlockedRooms] = useState<RoomId[]>(() => {
+    const savedRooms = saved.unlockedRooms || [];
+    return [...new Set([...STARTER_ROOMS, ...savedRooms])] as RoomId[];
+  });
+  const [inventory, setInventory] = useState<string[]>(saved.inventory || []);
+  const [visitedRooms, setVisitedRooms] = useState<RoomId[]>(saved.visitedRooms || []);
 
   useEffect(() => {
-    localStorage.setItem("hogwarts.explore", JSON.stringify(state));
-  }, [state]);
+    const state: GameState = { discoveries, unlockedRooms, inventory, visitedRooms, interactedElements: [] };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [discoveries, unlockedRooms, inventory, visitedRooms]);
 
-  const discoveredIds = useMemo(() => new Set(state.discoveries.map((d: Discovery) => d.secretId)) as Set<string>, [state.discoveries]);
-  const visitedRooms = useMemo(() => new Set(state.visitedRooms || []) as Set<RoomId>, [state.visitedRooms]);
+  const hasDiscovered = useCallback(
+    (roomId: string, secretId: string) => discoveries.some((d) => d.roomId === roomId && d.secretId === secretId),
+    [discoveries]
+  );
 
-  const discover = useCallback((roomId: string, secretId: string) => {
-    if (discoveredIds.has(secretId)) return false;
-    setState((p) => ({ ...p, discoveries: [...p.discoveries, { id: `${roomId}-${secretId}`, roomId, secretId, discoveredAt: Date.now() }] }));
-    return true;
-  }, [discoveredIds]);
-
-  const isDiscovered = useCallback((secretId: string) => discoveredIds.has(secretId), [discoveredIds]);
-
-  const unlockRoom = useCallback((roomId: RoomId) => {
-    setState((p) => p.unlockedRooms.includes(roomId) ? p : { ...p, unlockedRooms: [...p.unlockedRooms, roomId] });
-  }, []);
-
-  const isRoomUnlocked = useCallback((roomId: RoomId) => state.unlockedRooms.includes(roomId), [state.unlockedRooms]);
-
-  const addToInventory = useCallback((item: string) => {
-    setState((p) => p.inventory.includes(item) ? p : { ...p, inventory: [...p.inventory, item] });
+  const addDiscovery = useCallback((roomId: string, secretId: string) => {
+    setDiscoveries((prev) => {
+      if (prev.some((d) => d.roomId === roomId && d.secretId === secretId)) return prev;
+      return [...prev, { roomId, secretId, discoveredAt: Date.now() }];
+    });
   }, []);
 
   const visitRoom = useCallback((roomId: RoomId) => {
-    setState((p) => (p.visitedRooms || []).includes(roomId) ? p : { ...p, visitedRooms: [...(p.visitedRooms || []), roomId] });
+    setVisitedRooms((prev) => (prev.includes(roomId) ? prev : [...prev, roomId]));
   }, []);
 
-  const resetProgress = useCallback(() => {
-    setState({ discoveries: [], unlockedRooms: ["entrance-hall", "great-hall", "library", "grand-staircase", "common-room"], inventory: [], visitedRooms: [] });
+  const isRoomUnlocked = useCallback((roomId: RoomId) => unlockedRooms.includes(roomId), [unlockedRooms]);
+
+  const getRoomUnlockHint = useCallback((roomId: RoomId) => {
+    const room = rooms.find((r) => r.id === roomId);
+    return room?.unlockRequires;
   }, []);
+
+  const unlockRoom = useCallback((roomId: RoomId) => {
+    setUnlockedRooms((prev) => {
+      if (prev.includes(roomId)) return prev;
+      return [...prev, roomId];
+    });
+  }, []);
+
+  const addToInventory = useCallback((item: string) => {
+    setInventory((prev) => (prev.includes(item) ? prev : [...prev, item]));
+  }, []);
+
+  const hasInInventory = useCallback((item: string) => inventory.includes(item), [inventory]);
 
   return (
-    <Ctx.Provider value={{
-      discoveries: state.discoveries, discoveredIds, discoveredCount: state.discoveries.length, totalSecrets: TOTAL_SECRETS,
-      discover, isDiscovered, unlockedRooms: state.unlockedRooms as RoomId[], unlockRoom, isRoomUnlocked,
-      inventory: state.inventory, addToInventory, visitedRooms, visitRoom, resetProgress,
-    }}>
+    <DiscoveryContext.Provider
+      value={{
+        discoveries,
+        unlockedRooms,
+        inventory,
+        visitedRooms,
+        discoveredCount: discoveries.length,
+        totalSecrets: TOTAL_SECRETS,
+        hasDiscovered,
+        addDiscovery,
+        visitRoom,
+        isRoomUnlocked,
+        getRoomUnlockHint,
+        unlockRoom,
+        addToInventory,
+        hasInInventory,
+      }}
+    >
       {children}
-    </Ctx.Provider>
+    </DiscoveryContext.Provider>
   );
 }
 
 export function useDiscovery() {
-  const ctx = useContext(Ctx);
+  const ctx = useContext(DiscoveryContext);
   if (!ctx) throw new Error("useDiscovery must be used within DiscoveryProvider");
   return ctx;
 }
