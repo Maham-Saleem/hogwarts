@@ -4,15 +4,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: {
-          950: "#0D1117",
-          900: "#0D1117",
-          850: "#10151d",
-          800: "#161B22",
-          700: "#1c222c",
-          600: "#242b36",
-          500: "#2e3642",
-        },
+        abyss: "#090B10",
+        surface: "#15181F",
+        "surface-light": "#1C2029",
         gold: {
           DEFAULT: "#D4AF37",
           50: "#FBF6E4",
@@ -24,33 +18,24 @@ export default {
           600: "#967A24",
           700: "#6E5A1B",
         },
-        wine: {
-          DEFAULT: "#6A1B1A",
-          300: "#A63A38",
-          400: "#8a2a28",
-          500: "#6A1B1A",
-          600: "#551615",
-          700: "#411010",
+        burgundy: {
+          DEFAULT: "#5E1B24",
+          light: "#7A2530",
+          dark: "#4A1520",
         },
-        emerald2: {
-          DEFAULT: "#1E5631",
-          200: "#3E8A5A",
-          300: "#2F7A4B",
-          400: "#1E5631",
-          500: "#174426",
+        forest: {
+          DEFAULT: "#1F5033",
+          light: "#2A6B44",
+          dark: "#163A25",
         },
-        silver: {
-          DEFAULT: "#C0C0C0",
-          200: "#E6E6E6",
-          300: "#D0D0D0",
-          400: "#C0C0C0",
-          500: "#A0A0A0",
+        moonlight: {
+          DEFAULT: "#C9CDD3",
+          dim: "#8A9099",
         },
-        beige: {
-          DEFAULT: "#E8DCC4",
-          100: "#F2EAD8",
-          200: "#E8DCC4",
-          300: "#D9C9A7",
+        magic: {
+          blue: "#4A9EFF",
+          glow: "#6BB5FF",
+          dim: "#2A5A8F",
         },
       },
       fontFamily: {
@@ -61,20 +46,30 @@ export default {
       boxShadow: {
         glow: "0 0 24px rgba(212, 175, 55, 0.25)",
         "glow-sm": "0 0 12px rgba(212, 175, 55, 0.18)",
-        "glow-wine": "0 0 24px rgba(106, 27, 26, 0.35)",
-        panel: "0 20px 50px -12px rgba(0, 0, 0, 0.6)",
+        "glow-blue": "0 0 24px rgba(74, 158, 255, 0.3)",
+        "glow-burgundy": "0 0 24px rgba(94, 27, 36, 0.4)",
+        "inner-glow": "inset 0 0 30px rgba(212, 175, 55, 0.08)",
       },
       backgroundImage: {
         "radial-gold":
-          "radial-gradient(circle at 50% 0%, rgba(212,175,55,0.12), transparent 60%)",
+          "radial-gradient(circle at 50% 0%, rgba(212,175,55,0.15), transparent 60%)",
+        "radial-blue":
+          "radial-gradient(circle at 50% 50%, rgba(74,158,255,0.1), transparent 60%)",
+        "vignette":
+          "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%)",
       },
       animation: {
-        "float-slow": "float 8s ease-in-out infinite",
-        "float-slower": "float 12s ease-in-out infinite",
-        flicker: "flicker 3s ease-in-out infinite",
+        "float": "float 8s ease-in-out infinite",
+        "float-slow": "float 12s ease-in-out infinite",
+        "float-slower": "float 16s ease-in-out infinite",
+        "flicker": "flicker 3s ease-in-out infinite",
         "flicker-fast": "flicker 1.8s ease-in-out infinite",
-        shimmer: "shimmer 2.2s linear infinite",
-        "spin-slow": "spin 14s linear infinite",
+        "pulse-glow": "pulseGlow 4s ease-in-out infinite",
+        "shimmer": "shimmer 2.2s linear infinite",
+        "drift": "drift 20s linear infinite",
+        "sway": "sway 6s ease-in-out infinite",
+        "rain-fall": "rainFall 0.8s linear infinite",
+        "lightning": "lightning 8s ease-in-out infinite",
       },
       keyframes: {
         float: {
@@ -87,9 +82,35 @@ export default {
           "50%": { opacity: "0.9", transform: "scaleY(1.02)" },
           "70%": { opacity: "0.65", transform: "scaleY(0.97)" },
         },
+        pulseGlow: {
+          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.05)" },
+        },
         shimmer: {
           "0%": { backgroundPosition: "-400px 0" },
           "100%": { backgroundPosition: "400px 0" },
+        },
+        drift: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100vw)" },
+        },
+        sway: {
+          "0%, 100%": { transform: "rotate(-2deg)" },
+          "50%": { transform: "rotate(2deg)" },
+        },
+        rainFall: {
+          "0%": { transform: "translateY(-100vh)", opacity: "0" },
+          "10%": { opacity: "1" },
+          "90%": { opacity: "1" },
+          "100%": { transform: "translateY(100vh)", opacity: "0" },
+        },
+        lightning: {
+          "0%, 100%": { opacity: "0" },
+          "4%": { opacity: "0" },
+          "5%": { opacity: "0.8" },
+          "6%": { opacity: "0" },
+          "7%": { opacity: "0.4" },
+          "8%": { opacity: "0" },
         },
       },
     },

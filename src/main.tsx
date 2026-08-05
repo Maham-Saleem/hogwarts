@@ -1,30 +1,24 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { AudioProvider } from "@/context/AudioContext";
+import { DiscoveryProvider } from "@/context/DiscoveryContext";
 import App from "./App";
-import { ThemeProvider } from "@/context/ThemeContext";
-import { AuthProvider } from "@/context/AuthContext";
-import { DataProvider } from "@/context/DataContext";
-import { ToastProvider } from "@/context/ToastContext";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/styles/index.css";
+import "@fontsource/cinzel/400.css";
+import "@fontsource/cinzel/700.css";
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/inter/400.css";
 
-const root = document.getElementById("root")!;
-
-createRoot(root).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ErrorBoundary>
-      <ThemeProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <DataProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </DataProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <BrowserRouter>
+      <AudioProvider>
+        <DiscoveryProvider>
+          <App />
+        </DiscoveryProvider>
+      </AudioProvider>
+    </BrowserRouter>
   </StrictMode>
 );
