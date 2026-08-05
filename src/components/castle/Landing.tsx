@@ -88,6 +88,7 @@ export function Landing({ onComplete }: LandingProps) {
   useEffect(() => {
     if (!started) return;
     if (phase === "candle") {
+      audio.playLoop("pad");
       audio.playLoop("fire");
     } else if (phase === "rain-window") {
       audio.playLoop("rain");
