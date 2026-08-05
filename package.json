@@ -1,7 +1,7 @@
 {
   "name": "explore-hogwarts",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Explore Hogwarts - An Immersive Fantasy Web Experience",
   "scripts": {
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.1.0",
+    "@fontsource/cinzel-decorative": "^5.1.0",
     "@fontsource/cormorant-garamond": "^5.1.0",
     "@fontsource/inter": "^5.1.0",
     "framer-motion": "^11.15.0",

@@ -4,34 +4,22 @@ import { createContext, useContext, useEffect, useState } from "react";
 interface AudioContextValue {
   muted: boolean;
   toggleMute: () => void;
-  playAmbient: (type: string) => void;
-  stopAmbient: () => void;
 }
 
-const AudioCtx = createContext<AudioContextValue | null>(null);
+const Ctx = createContext<AudioContextValue | null>(null);
 
 export function AudioProvider({ children }: { children: ReactNode }) {
-  const [muted, setMuted] = useState(() => {
-    return localStorage.getItem("hogwarts.audio-muted") === "true";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("hogwarts.audio-muted", String(muted));
-  }, [muted]);
-
-  const toggleMute = () => setMuted((m) => !m);
-  const playAmbient = (_type: string) => {};
-  const stopAmbient = () => {};
-
+  const [muted, setMuted] = useState(() => localStorage.getItem("hogwarts.audio") === "true");
+  useEffect(() => { localStorage.setItem("hogwarts.audio", String(muted)); }, [muted]);
   return (
-    <AudioCtx.Provider value={{ muted, toggleMute, playAmbient, stopAmbient }}>
+    <Ctx.Provider value={{ muted, toggleMute: () => setMuted((m) => !m) }}>
       {children}
-    </AudioCtx.Provider>
+    </Ctx.Provider>
   );
 }
 
 export function useAudio() {
-  const ctx = useContext(AudioCtx);
+  const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useAudio must be used within AudioProvider");
   return ctx;
 }

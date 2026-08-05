@@ -3,52 +3,12 @@
 @tailwind utilities;
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  html {
-    scroll-behavior: smooth;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  body {
-    background-color: #090B10;
-    color: #C9CDD3;
-    font-family: "Inter", system-ui, sans-serif;
-    overflow-x: hidden;
-  }
-
-  ::selection {
-    background: rgba(212, 175, 55, 0.3);
-    color: #FBF6E4;
-  }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #090B10;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: rgba(212, 175, 55, 0.2);
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(212, 175, 55, 0.4);
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { background-color: #090B10; color: #C9CDD3; font-family: "Inter", system-ui, sans-serif; overflow-x: hidden; }
+  ::selection { background: rgba(212, 175, 55, 0.3); color: #FBF6E4; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: #090B10; }
+  ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.15); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(212, 175, 55, 0.3); }
 }

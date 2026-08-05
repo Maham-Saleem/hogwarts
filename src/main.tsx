@@ -7,6 +7,8 @@ import App from "./App";
 import "@/styles/index.css";
 import "@fontsource/cinzel/400.css";
 import "@fontsource/cinzel/700.css";
+import "@fontsource/cinzel-decorative/400.css";
+import "@fontsource/cinzel-decorative/700.css";
 import "@fontsource/cormorant-garamond/400.css";
 import "@fontsource/cormorant-garamond/600.css";
 import "@fontsource/inter/400.css";

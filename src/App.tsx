@@ -10,12 +10,14 @@ function LoadingFallback() {
   return (
     <div className="min-h-screen bg-abyss flex items-center justify-center">
       <div className="text-center">
-        <div className="text-4xl mb-4 animate-pulse">✨</div>
-        <p className="font-heading text-sm text-gold/60 tracking-[0.3em]">LOADING...</p>
+        <motion.div className="text-4xl mb-4" animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>✨</motion.div>
+        <p className="font-heading text-sm text-gold/50 tracking-[0.3em]">ENTERING THE CASTLE...</p>
       </div>
     </div>
   );
 }
+
+import { motion } from "framer-motion";
 
 export default function App() {
   return (

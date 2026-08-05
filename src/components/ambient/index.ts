@@ -13,3 +13,7 @@ export { Leaves } from "./Leaves";
 export { Feathers } from "./Feathers";
 export { Portraits } from "./Portraits";
 export { StainedGlassLight } from "./StainedGlassLight";
+export { Curtains } from "./Curtains";
+export { Fireplace } from "./Fireplace";
+export { Banners } from "./Banners";
+export { WeatherWindow } from "./WeatherWindow";
