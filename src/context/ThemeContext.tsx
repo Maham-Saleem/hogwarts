@@ -34,8 +34,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     window.localStorage.setItem("hogwarts.theme", mode);
-    document.documentElement.classList.remove(...Object.values(THEME_CSS));
-    document.documentElement.classList.add(THEME_CSS[mode]);
+    Object.values(THEME_CSS).filter(Boolean).forEach(cls => document.documentElement.classList.remove(cls));
+    if (THEME_CSS[mode]) document.documentElement.classList.add(THEME_CSS[mode]);
   }, [mode]);
 
   const value = useMemo<ThemeContextValue>(
