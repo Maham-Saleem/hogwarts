@@ -1,0 +1,105 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/cinzel/600.css";
+@import "@fontsource/cinzel/700.css";
+@import "@fontsource/cormorant-garamond/500.css";
+@import "@fontsource/cormorant-garamond/600.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply bg-ink-950 text-beige-100 font-body antialiased;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(106, 27, 26, 0.14), transparent 45%),
+      radial-gradient(circle at 80% 20%, rgba(30, 86, 49, 0.12), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(212, 175, 55, 0.06), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+
+  ::selection {
+    @apply bg-gold/30 text-gold-100;
+  }
+
+  *:focus-visible {
+    outline: 2px solid rgba(212, 175, 55, 0.85);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-ink-800/70 backdrop-blur-xl border border-silver/10 shadow-panel;
+  }
+
+  .glass-strong {
+    @apply bg-ink-800/90 backdrop-blur-2xl border border-gold/15 shadow-panel;
+  }
+
+  .gold-gradient-text {
+    @apply bg-gradient-to-r from-gold-200 via-gold-400 to-gold-300 bg-clip-text text-transparent;
+  }
+
+  .gold-divider {
+    @apply h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent;
+  }
+
+  .input-base {
+    @apply w-full rounded-lg bg-ink-900/70 border border-silver/15 px-4 py-2.5 text-sm text-beige-100 placeholder:text-silver/40 transition-colors focus:border-gold/60 focus:outline-none focus:ring-1 focus:ring-gold/40;
+  }
+
+  .btn-focus {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  }
+
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 175, 55, 0.35) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    @apply bg-gold/30 rounded-full;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .fog {
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.05) 30%,
+      rgba(255, 255, 255, 0) 60%
+    );
+    filter: blur(24px);
+  }
+}
