@@ -1,24 +1,28 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
 export function Fireplace() {
-  const flames = useMemo(() => Array.from({ length: 6 }, (_, i) => ({
-    id: i, left: 42 + Math.random() * 16, delay: Math.random() * 3,
-    height: 12 + Math.random() * 18, width: 5 + Math.random() * 6,
-  })), []);
   return (
-    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[5] h-32 overflow-hidden">
-      {flames.map((f) => (
-        <div key={f.id} className="absolute bottom-0 animate-flicker-slow" style={{
-          left: `${f.left}%`, width: `${f.width}px`, height: `${f.height}px`,
-          background: "linear-gradient(to top, #FF4500 0%, #FF8C00 30%, #FFD700 60%, transparent 100%)",
-          borderRadius: "50% 50% 20% 20% / 70% 70% 30% 30%", opacity: 0.25,
-          animationDuration: `${4 + Math.random() * 3}s`, animationDelay: `${f.delay}s`,
-          filter: "blur(3px)",
-        }} />
-      ))}
-      <div className="absolute inset-0" style={{
-        background: "radial-gradient(ellipse at 50% 100%, rgba(255,120,50,0.05), transparent 55%)",
-      }} />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Warm glow from fireplace */}
+      <motion.div
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[40%]"
+        style={{
+          background: "radial-gradient(ellipse at 50% 100%, rgba(255,143,0,0.06), transparent 70%)",
+        }}
+        animate={{
+          opacity: [0.6, 0.8, 0.5, 0.7, 0.6],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* Ember glow on nearby surfaces */}
+      <motion.div
+        className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[40%] h-[15%] rounded-full blur-2xl"
+        style={{ backgroundColor: "rgba(255,109,0,0.03)" }}
+        animate={{
+          opacity: [0.4, 0.6, 0.3, 0.5, 0.4],
+        }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+      />
     </div>
   );
 }

@@ -1,22 +1,42 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
-export function Smoke({ count = 10, originX = 50, originY = 75 }: { count?: number; originX?: number; originY?: number }) {
-  const wisps = useMemo(() => Array.from({ length: count }, (_, i) => ({
-    id: i, offsetX: (Math.random() - 0.5) * 15, size: 25 + Math.random() * 40,
-    delay: Math.random() * 8, duration: 7 + Math.random() * 6,
-  })), [count]);
+const wisps = Array.from({ length: 4 }, (_, i) => ({
+  id: i,
+  x: 35 + Math.random() * 30,
+  startY: 60 + Math.random() * 20,
+  size: 40 + Math.random() * 30,
+  duration: 10 + Math.random() * 8,
+  delay: Math.random() * 6,
+}));
+
+export function Smoke() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[5] overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {wisps.map((w) => (
-        <div key={w.id} className="absolute rounded-full" style={{
-          left: `${originX + w.offsetX}%`, top: `${originY}%`,
-          width: `${w.size}px`, height: `${w.size}px`,
-          background: "radial-gradient(circle, rgba(140,140,140,0.04), transparent)",
-          filter: "blur(18px)", animation: `smokeRise ${w.duration}s ease-out infinite`,
-          animationDelay: `${w.delay}s`,
-        }} />
+        <motion.div
+          key={w.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${w.x}%`,
+            top: `${w.startY}%`,
+            width: w.size,
+            height: w.size,
+            background: "radial-gradient(circle, rgba(60,58,55,0.06), transparent 70%)",
+          }}
+          animate={{
+            y: [0, -40, -70],
+            x: [0, 5, -3],
+            opacity: [0, 0.06, 0],
+            scale: [1, 1.5, 2],
+          }}
+          transition={{
+            duration: w.duration,
+            repeat: Infinity,
+            delay: w.delay,
+            ease: "easeOut",
+          }}
+        />
       ))}
-      <style>{`@keyframes smokeRise { 0% { transform: translateY(0) scale(1); opacity: 0.08; } 100% { transform: translateY(-150px) scale(2); opacity: 0; } }`}</style>
     </div>
   );
 }

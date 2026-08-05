@@ -1,18 +1,43 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
-export function Fireflies({ count = 20, color = "rgba(170,255,136,0.5)" }: { count?: number; color?: string }) {
-  const flies = useMemo(() => Array.from({ length: count }, (_, i) => ({
-    id: i, left: Math.random() * 100, top: Math.random() * 100, size: 1.5 + Math.random() * 2,
-    delay: Math.random() * 10, duration: 8 + Math.random() * 10,
-  })), [count]);
+const fireflies = Array.from({ length: 5 }, (_, i) => ({
+  id: i,
+  x: 20 + Math.random() * 60,
+  y: 30 + Math.random() * 50,
+  size: 2 + Math.random() * 1.5,
+  driftX: -15 + Math.random() * 30,
+  driftY: -10 + Math.random() * 20,
+  duration: 12 + Math.random() * 10,
+  delay: Math.random() * 8,
+}));
+
+export function Fireflies() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[6] overflow-hidden">
-      {flies.map((f) => (
-        <div key={f.id} className="absolute rounded-full animate-pulse-glow" style={{
-          left: `${f.left}%`, top: `${f.top}%`, width: `${f.size}px`, height: `${f.size}px`,
-          background: color, boxShadow: `0 0 ${f.size * 2}px ${f.size}px ${color.replace(/[\d.]+\)$/, "0.15)")}`,
-          animationDuration: `${f.duration}s`, animationDelay: `${f.delay}s`,
-        }} />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {fireflies.map((f) => (
+        <motion.div
+          key={f.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${f.x}%`,
+            top: `${f.y}%`,
+            width: f.size,
+            height: f.size,
+            backgroundColor: "rgba(200,210,150,0.25)",
+            boxShadow: "0 0 4px rgba(200,210,150,0.15)",
+          }}
+          animate={{
+            x: [0, f.driftX, -f.driftX / 2, f.driftX / 3, 0],
+            y: [0, f.driftY, -f.driftY / 2, f.driftY / 3, 0],
+            opacity: [0, 0.25, 0.1, 0.3, 0],
+          }}
+          transition={{
+            duration: f.duration,
+            repeat: Infinity,
+            delay: f.delay,
+            ease: "easeInOut",
+          }}
+        />
       ))}
     </div>
   );

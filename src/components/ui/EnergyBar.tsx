@@ -11,15 +11,29 @@ export function EnergyBar({ value, max, color = "#D4AF37", label }: EnergyBarPro
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="w-full">
-      {label && <div className="flex items-center justify-between mb-1.5">
-        <span className="font-display text-xs text-moonlight/40">{label}</span>
-        <span className="font-heading text-[10px] text-gold/60">{value}/{max}</span>
-      </div>}
-      <div className="relative h-1.5 bg-abyss-light rounded-full overflow-hidden border border-white/[0.03]">
-        <motion.div className="absolute inset-y-0 left-0 rounded-full" style={{
-          background: `linear-gradient(90deg, ${color}60, ${color}90)`,
-          boxShadow: `0 0 8px ${color}20`,
-        }} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1.5, ease: "easeOut" }} />
+      {label && (
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="font-cormorant text-xs" style={{ color: "rgba(160,150,130,0.35)" }}>{label}</span>
+          <span className="font-cinzel text-[10px]" style={{ color: "rgba(184,134,11,0.4)" }}>{value}/{max}</span>
+        </div>
+      )}
+      <div
+        className="relative h-1 rounded-full overflow-hidden"
+        style={{
+          background: "rgba(30,28,26,0.6)",
+          border: "0.5px solid rgba(60,56,52,0.15)",
+        }}
+      >
+        <motion.div
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{
+            background: `linear-gradient(90deg, ${color}40, ${color}70)`,
+            boxShadow: `0 0 8px ${color}15`,
+          }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+        />
       </div>
     </div>
   );

@@ -1,31 +1,41 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
-export function FloatingCandles({ count = 18 }: { count?: number }) {
-  const candles = useMemo(() => Array.from({ length: count }, (_, i) => ({
-    id: i, left: 6 + Math.random() * 88, top: 4 + Math.random() * 40,
-    size: 2 + Math.random() * 4, delay: Math.random() * 8, flickerDur: 4 + Math.random() * 4,
-    floatDur: 12 + Math.random() * 12,
-  })), [count]);
+const glowPoints = Array.from({ length: 8 }, (_, i) => ({
+  id: i,
+  x: 15 + Math.random() * 70,
+  y: 5 + Math.random() * 25,
+  size: 60 + Math.random() * 80,
+  opacity: 0.02 + Math.random() * 0.02,
+  flickerDuration: 5 + Math.random() * 4,
+  flickerDelay: Math.random() * 3,
+}));
+
+export function FloatingCandles() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[6] overflow-hidden">
-      {candles.map((c) => (
-        <div key={c.id} className="absolute" style={{
-          left: `${c.left}%`, top: `${c.top}%`,
-          animation: `float ${c.floatDur}s ease-in-out infinite`, animationDelay: `${c.delay}s`,
-        }}>
-          <div className="animate-flicker" style={{
-            width: `${c.size}px`, height: `${c.size * 1.6}px`,
-            background: "radial-gradient(ellipse at center, #FFD700 0%, #FF8C00 40%, transparent 70%)",
-            borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
-            animationDuration: `${c.flickerDur}s`, animationDelay: `${c.delay}s`,
-            boxShadow: "0 0 8px 2px rgba(255,200,50,0.2)",
-          }} />
-          <div style={{
-            width: `${c.size * 0.4}px`, height: `${c.size * 2}px`,
-            background: "linear-gradient(to bottom, #E8DCC4, #C9A96E)",
-            borderRadius: "0 0 1px 1px", margin: "0 auto",
-          }} />
-        </div>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {glowPoints.map((g) => (
+        <motion.div
+          key={g.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${g.x}%`,
+            top: `${g.y}%`,
+            width: g.size,
+            height: g.size,
+            background: `radial-gradient(circle, rgba(255,213,79,${g.opacity}), transparent 70%)`,
+            transform: "translate(-50%, -50%)",
+          }}
+          animate={{
+            opacity: [g.opacity, g.opacity * 1.3, g.opacity * 0.8, g.opacity * 1.1, g.opacity],
+            scale: [1, 1.02, 0.98, 1.01, 1],
+          }}
+          transition={{
+            duration: g.flickerDuration,
+            repeat: Infinity,
+            delay: g.flickerDelay,
+            ease: "easeInOut",
+          }}
+        />
       ))}
     </div>
   );

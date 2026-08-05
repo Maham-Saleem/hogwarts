@@ -1,19 +1,39 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
-export function Stars({ count = 100 }: { count?: number }) {
-  const stars = useMemo(() => Array.from({ length: count }, (_, i) => ({
-    id: i, left: Math.random() * 100, top: Math.random() * 50, size: 0.4 + Math.random() * 1.5,
-    delay: Math.random() * 6, duration: 6 + Math.random() * 6, brightness: 0.2 + Math.random() * 0.5,
-  })), [count]);
+const stars = Array.from({ length: 50 }, (_, i) => ({
+  id: i,
+  x: Math.random() * 100,
+  y: Math.random() * 60,
+  size: 0.5 + Math.random() * 1.5,
+  brightness: 0.15 + Math.random() * 0.25,
+  twinkleDuration: 4 + Math.random() * 6,
+  delay: Math.random() * 8,
+}));
+
+export function Stars() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[3] overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {stars.map((s) => (
-        <div key={s.id} className="absolute rounded-full animate-pulse-glow" style={{
-          left: `${s.left}%`, top: `${s.top}%`, width: `${s.size}px`, height: `${s.size}px`,
-          background: "#FFF", opacity: s.brightness,
-          boxShadow: `0 0 ${s.size}px ${s.size / 2}px rgba(200,220,255,${s.brightness * 0.3})`,
-          animationDuration: `${s.duration}s`, animationDelay: `${s.delay}s`,
-        }} />
+        <motion.div
+          key={s.id}
+          className="absolute rounded-full"
+          style={{
+            left: `${s.x}%`,
+            top: `${s.y}%`,
+            width: s.size,
+            height: s.size,
+            backgroundColor: `rgba(200,210,230,${s.brightness})`,
+          }}
+          animate={{
+            opacity: [s.brightness, s.brightness * 0.5, s.brightness],
+          }}
+          transition={{
+            duration: s.twinkleDuration,
+            repeat: Infinity,
+            delay: s.delay,
+            ease: "easeInOut",
+          }}
+        />
       ))}
     </div>
   );

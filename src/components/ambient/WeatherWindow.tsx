@@ -1,18 +1,19 @@
-import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 export function WeatherWindow() {
-  const [lightning, setLightning] = useState(false);
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (Math.random() > 0.75) { setLightning(true); setTimeout(() => setLightning(false), 100); }
-    }, 10000);
-    return () => clearInterval(t);
-  }, []);
   return (
-    <div className="pointer-events-none fixed inset-0 z-[3] overflow-hidden">
-      <div className="absolute top-0 right-[22%] w-24 h-full opacity-[0.02]"
-        style={{ background: "linear-gradient(180deg, rgba(200,220,255,0.2), transparent 65%)", transform: "skewX(-6deg)" }} />
-      {lightning && <div className="absolute inset-0 bg-white/[0.03]" />}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Subtle daylight variation */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(ellipse at 50% 20%, rgba(180,170,155,0.015), transparent 60%)",
+        }}
+        animate={{
+          opacity: [0.5, 0.8, 0.5],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+      />
     </div>
   );
 }

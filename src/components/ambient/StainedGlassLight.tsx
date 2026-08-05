@@ -1,20 +1,36 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
 export function StainedGlassLight() {
-  const rays = useMemo(() => Array.from({ length: 4 }, (_, i) => ({
-    id: i, left: 15 + i * 20, width: 30 + Math.random() * 20,
-    color: ["rgba(212,175,55,0.025)", "rgba(94,27,36,0.018)", "rgba(74,158,255,0.018)", "rgba(212,175,55,0.025)"][i],
-    delay: i * 3,
-  })), []);
   return (
-    <div className="pointer-events-none fixed inset-0 z-[4] overflow-hidden">
-      {rays.map((r) => (
-        <div key={r.id} className="absolute" style={{
-          left: `${r.left}%`, top: "0%", width: `${r.width}px`, height: "100%",
-          background: `linear-gradient(180deg, ${r.color} 0%, transparent 70%)`,
-          transform: "skewX(-3deg)", animation: `pulseGlow 12s ease-in-out infinite`, animationDelay: `${r.delay}s`,
-        }} />
-      ))}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Warm gold light spill from windows */}
+      <motion.div
+        className="absolute top-0 left-[20%] w-[25%] h-[60%]"
+        style={{
+          background: "linear-gradient(180deg, rgba(212,175,55,0.03) 0%, transparent 100%)",
+          clipPath: "polygon(30% 0%, 70% 0%, 90% 100%, 10% 100%)",
+        }}
+        animate={{ opacity: [0.5, 0.8, 0.5] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute top-0 left-[55%] w-[25%] h-[60%]"
+        style={{
+          background: "linear-gradient(180deg, rgba(94,27,36,0.02) 0%, transparent 100%)",
+          clipPath: "polygon(30% 0%, 70% 0%, 85% 100%, 15% 100%)",
+        }}
+        animate={{ opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+      {/* Colored light patches on floor */}
+      <div
+        className="absolute bottom-0 left-[25%] w-[15%] h-[8%] rounded-full blur-xl"
+        style={{ backgroundColor: "rgba(212,175,55,0.015)" }}
+      />
+      <div
+        className="absolute bottom-0 left-[60%] w-[12%] h-[6%] rounded-full blur-xl"
+        style={{ backgroundColor: "rgba(94,27,36,0.01)" }}
+      />
     </div>
   );
 }

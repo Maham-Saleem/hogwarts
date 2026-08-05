@@ -1,18 +1,24 @@
-import { useMemo } from "react";
+import { motion } from "framer-motion";
 
-export function Fog({ layers = 4, color = "rgba(180,195,210,0.025)" }: { layers?: number; color?: string }) {
-  const fogLayers = useMemo(() => Array.from({ length: layers }, (_, i) => ({
-    id: i, duration: 35 + i * 12, opacity: 0.018 + i * 0.007, height: 20 + i * 15, bottom: -6 + i * 3,
-  })), [layers]);
+export function Fog() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[4] overflow-hidden">
-      {fogLayers.map((f) => (
-        <div key={f.id} className="absolute w-[200%] animate-drift" style={{
-          bottom: `${f.bottom}%`, height: `${f.height}%`,
-          background: `linear-gradient(90deg, transparent 0%, ${color} 25%, ${color} 50%, ${color} 75%, transparent 100%)`,
-          opacity: f.opacity, animationDuration: `${f.duration}s`, filter: "blur(60px)",
-        }} />
-      ))}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div
+        className="absolute w-[140%] h-[40%] bottom-0 -left-[20%]"
+        style={{
+          background: "linear-gradient(0deg, rgba(40,38,36,0.15) 0%, rgba(40,38,36,0.05) 40%, transparent 100%)",
+        }}
+        animate={{ x: ["-5%", "5%", "-5%"] }}
+        transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
+      />
+      <motion.div
+        className="absolute w-[140%] h-[30%] bottom-[10%] -left-[20%]"
+        style={{
+          background: "linear-gradient(0deg, rgba(50,48,45,0.08) 0%, transparent 100%)",
+        }}
+        animate={{ x: ["3%", "-3%", "3%"] }}
+        transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+      />
     </div>
   );
 }
