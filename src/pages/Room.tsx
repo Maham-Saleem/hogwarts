@@ -31,10 +31,7 @@ export function Room() {
     if (!room) return;
     if (discoveredIds.size + 1 >= 3 && room.secrets.length > 0) {
       const s = room.secrets.find((x) => !isDiscovered(x.id));
-      if (s && discover(room.id, s.id)) {
-        setRevealedSecret(s);
-        addToInventory(s.name);
-      }
+      if (s && discover(room.id, s.id)) { setRevealedSecret(s); addToInventory(s.name); }
     }
   }, [room, discoveredIds, isDiscovered, discover, addToInventory]);
 
@@ -48,8 +45,8 @@ export function Room() {
   if (!room) return (
     <div className="min-h-screen bg-abyss flex items-center justify-center">
       <div className="text-center">
-        <h1 className="font-heading text-3xl text-gold mb-4">Chamber Not Found</h1>
-        <button onClick={() => navigate("/hub")} className="px-6 py-2 bg-gold/10 border border-gold/30 rounded-lg text-gold text-sm hover:bg-gold/20 transition-colors">Return to Hub</button>
+        <h1 className="font-heading text-2xl text-gold/60 mb-4">Chamber Not Found</h1>
+        <button onClick={() => navigate("/hub")} className="px-5 py-2 bg-gold/8 border border-gold/20 rounded-lg text-gold/60 text-xs hover:border-gold/30 transition-all duration-500">Return to Hub</button>
       </div>
     </div>
   );
@@ -59,7 +56,6 @@ export function Room() {
 
   return (
     <div className="relative min-h-screen bg-abyss overflow-hidden">
-      {/* Room ambience */}
       <div className="fixed inset-0 z-0" style={{
         background: `radial-gradient(ellipse at 50% 30%, ${room.colors.ambient}, transparent 70%), radial-gradient(ellipse at 50% 100%, ${room.colors.ambient}, transparent 50%)`,
       }} />
@@ -67,105 +63,95 @@ export function Room() {
       <div className="fixed inset-0 z-[7] pointer-events-none bg-vignette" />
 
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Top bar */}
         <motion.div className="fixed top-14 left-0 right-0 z-20 flex items-center justify-between px-4 md:px-8 py-3"
-          initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.8 }}>
           <button onClick={() => navigate("/hub")}
-            className="px-3 py-1.5 bg-surface/60 border border-gold/15 rounded-lg text-xs text-moonlight/60 hover:text-gold transition-colors font-body">← Hub</button>
-          <div className="flex items-center gap-4 text-xs text-moonlight/40 font-body">
+            className="px-3 py-1.5 bg-surface/50 border border-gold/10 rounded text-[10px] text-moonlight/50 hover:text-moonlight/80 transition-all duration-500 font-body">← Hub</button>
+          <div className="flex items-center gap-3 text-[10px] text-moonlight/30 font-body">
             <span>{discoveredIds.size}/{room.interactiveElements.length} found</span>
             <span>{room.secrets.filter((s) => isDiscovered(s.id)).length}/{room.secrets.length} secrets</span>
           </div>
         </motion.div>
 
-        {/* Room header */}
-        <motion.div className="pt-28 pb-6 text-center px-4"
-          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-          <div className="text-4xl mb-3">{room.icon}</div>
-          <h1 className="font-heading text-3xl md:text-5xl tracking-[0.12em] mb-2"
-            style={{ color: room.colors.primary, textShadow: `0 0 30px ${room.colors.glow}` }}>{room.name}</h1>
-          <p className="font-display text-sm md:text-base text-moonlight/35 italic">{room.subtitle}</p>
+        <motion.div className="pt-28 pb-5 text-center px-4"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, ease: "easeOut" }}>
+          <div className="text-2xl mb-2 opacity-40" style={{ color: room.colors.primary }}>{room.icon}</div>
+          <h1 className="font-heading text-2xl md:text-4xl tracking-[0.1em] mb-1.5"
+            style={{ color: `${room.colors.primary}CC`, textShadow: `0 0 20px ${room.colors.glow}` }}>{room.name}</h1>
+          <p className="font-display text-xs md:text-sm text-moonlight/30 italic">{room.subtitle}</p>
         </motion.div>
 
-        {/* Content */}
         <div className="flex-1 max-w-5xl mx-auto w-full px-4">
-          {/* Description */}
-          <motion.div className="mb-8 text-center max-w-2xl mx-auto"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-            <p className="font-display text-sm md:text-base text-moonlight/45 leading-relaxed">{room.description}</p>
+          <motion.div className="mb-6 text-center max-w-xl mx-auto"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 1 }}>
+            <p className="font-display text-xs md:text-sm text-moonlight/35 leading-relaxed">{room.description}</p>
           </motion.div>
 
-          {/* Quote */}
           {room.quote && (
-            <motion.blockquote className="text-center mb-8 italic font-display text-moonlight/25 text-sm"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+            <motion.blockquote className="text-center mb-6 italic font-display text-moonlight/18 text-xs"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 1 }}>
               &ldquo;{room.quote}&rdquo;
             </motion.blockquote>
           )}
 
-          {/* Interactive area */}
-          <motion.div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-2xl overflow-hidden mb-8"
-            style={{ border: `1px solid ${room.colors.primary}15`, background: `linear-gradient(180deg, transparent 0%, ${room.colors.ambient} 100%)` }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
+          <motion.div className="relative w-full aspect-[16/10] md:aspect-[16/8] rounded-xl overflow-hidden mb-6"
+            style={{ border: `1px solid ${room.colors.primary}0A`, background: `linear-gradient(180deg, transparent 0%, ${room.colors.ambient} 100%)` }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 1 }}>
             {room.interactiveElements.map((el) => (
               <InteractiveObject key={el.id} element={el} onInteract={handleInteract} />
             ))}
             {discoveredIds.size === 0 && (
               <motion.div className="absolute inset-0 flex items-center justify-center"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }}>
-                <p className="font-display text-moonlight/15 text-sm italic">Tap the glowing objects to interact...</p>
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2, duration: 1 }}>
+                <p className="font-display text-moonlight/10 text-xs italic">Touch the symbols to interact...</p>
               </motion.div>
             )}
           </motion.div>
 
-          {/* Room features as enchanted books */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
             <EnchantedBook title="Room Features" color={room.colors.primary}>
-              {room.ambientEffects.length} ambient effects active. {room.interactiveElements.length} interactive elements to discover.
+              {room.ambientEffects.length} ambient effects active. {room.interactiveElements.length} elements to discover.
             </EnchantedBook>
-            <EnchantedBook title="Secrets & Mysteries" color="#8B5CF6">
-              {room.secrets.length > 0 ? `${room.secrets.length} hidden secret${room.secrets.length > 1 ? "s" : ""} waiting to be uncovered.` : "This room holds no known secrets... or does it?"}
+            <EnchantedBook title="Secrets" color="rgba(139,92,246,0.7)">
+              {room.secrets.length > 0 ? `${room.secrets.length} hidden secret${room.secrets.length > 1 ? "s" : ""} waiting.` : "No known secrets... or are there?"}
             </EnchantedBook>
           </div>
 
-          {/* Progress */}
-          <div className="mb-8 max-w-md mx-auto">
-            <EnergyBar value={discoveredIds.size} max={room.interactiveElements.length} color={room.colors.primary} label="Exploration Progress" />
+          <div className="mb-6 max-w-sm mx-auto">
+            <EnergyBar value={discoveredIds.size} max={room.interactiveElements.length} color={room.colors.primary} label="Exploration" />
           </div>
 
-          {/* Secret hints */}
           {room.secrets.length > 0 && (
-            <motion.div className="text-center mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+            <motion.div className="text-center mb-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 1 }}>
               {room.secrets.map((s) => (
-                <div key={s.id} className="inline-block mx-2 px-3 py-1.5 rounded-lg text-xs font-body"
+                <div key={s.id} className="inline-block mx-1.5 px-2.5 py-1 rounded text-[9px] font-body"
                   style={{
-                    color: isDiscovered(s.id) ? room.colors.primary : "rgba(201,205,211,0.25)",
-                    background: isDiscovered(s.id) ? `${room.colors.glow}15` : "transparent",
-                    border: `1px solid ${isDiscovered(s.id) ? room.colors.primary + "25" : "rgba(100,100,100,0.1)"}`,
+                    color: isDiscovered(s.id) ? `${room.colors.primary}90` : "rgba(201,205,211,0.18)",
+                    background: isDiscovered(s.id) ? `${room.colors.glow}0A` : "transparent",
+                    border: `0.5px solid ${isDiscovered(s.id) ? room.colors.primary + "18" : "rgba(80,80,80,0.08)"}`,
                   }}>
-                  {isDiscovered(s.id) ? `🔓 ${s.name}` : `🔒 ${s.hint}`}
+                  {isDiscovered(s.id) ? `✦ ${s.name}` : `◇ ${s.hint}`}
                 </div>
               ))}
             </motion.div>
           )}
         </div>
 
-        {/* Navigation */}
-        <motion.div className="flex items-center justify-between px-4 md:px-8 py-8 max-w-5xl mx-auto w-full"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+        <motion.div className="flex items-center justify-between px-4 md:px-8 py-6 max-w-5xl mx-auto w-full"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 1 }}>
           {prevRoom ? (
             <button onClick={() => navigate(`/explore/${prevRoom.id}`)}
-              className="px-4 py-2 bg-surface/60 border border-gold/15 rounded-lg text-xs text-moonlight/50 hover:text-gold hover:border-gold/30 transition-all font-body">
+              className="px-3 py-1.5 bg-surface/50 border border-gold/8 rounded text-[10px] text-moonlight/40 hover:text-moonlight/70 hover:border-gold/15 transition-all duration-500 font-body">
               ← {prevRoom.name}
             </button>
           ) : <div />}
           <button onClick={() => navigate("/hub")}
-            className="px-4 py-2 bg-gradient-to-b from-wood-light/40 to-wood/40 border border-brass/25 rounded-lg text-xs text-gold font-heading tracking-wider hover:from-wood-polish/15 transition-all">
-            🗺️ Castle Map
+            className="px-3 py-1.5 bg-gradient-to-b from-wood-light/25 to-wood/25 border border-brass/15 rounded text-[10px] text-gold/50 font-heading tracking-wider hover:text-gold/70 transition-all duration-500">
+            🗺️ Map
           </button>
           {nextRoom ? (
             <button onClick={() => navigate(`/explore/${nextRoom.id}`)}
-              className="px-4 py-2 bg-surface/60 border border-gold/15 rounded-lg text-xs text-moonlight/50 hover:text-gold hover:border-gold/30 transition-all font-body">
+              className="px-3 py-1.5 bg-surface/50 border border-gold/8 rounded text-[10px] text-moonlight/40 hover:text-moonlight/70 hover:border-gold/15 transition-all duration-500 font-body">
               {nextRoom.name} →
             </button>
           ) : <div />}

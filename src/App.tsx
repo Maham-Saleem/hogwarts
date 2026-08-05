@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AppLayout } from "@/layouts/AppLayout";
 
 const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.Landing })));
@@ -10,14 +11,14 @@ function LoadingFallback() {
   return (
     <div className="min-h-screen bg-abyss flex items-center justify-center">
       <div className="text-center">
-        <motion.div className="text-4xl mb-4" animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>✨</motion.div>
-        <p className="font-heading text-sm text-gold/50 tracking-[0.3em]">ENTERING THE CASTLE...</p>
+        <motion.div className="w-6 h-6 mx-auto mb-4 rounded-full border border-gold/20"
+          style={{ borderTopColor: "rgba(212,175,55,0.4)" }}
+          animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
+        <p className="font-heading text-[10px] text-gold/30 tracking-[0.3em]">ENTERING...</p>
       </div>
     </div>
   );
 }
-
-import { motion } from "framer-motion";
 
 export default function App() {
   return (
