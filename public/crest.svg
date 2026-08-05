@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <path d="M32 4L56 12v16c0 14.5-9.6 26.5-24 32C17.6 54.5 8 42.5 8 28V12L32 4z" fill="#161B22" stroke="#D4AF37" stroke-width="2.5"/>
+  <path d="M32 12l14 4v12c0 10-5.6 18-14 22-8.4-4-14-12-14-22V16l14-4z" fill="#0D1117" stroke="#D4AF37" stroke-width="1.5" opacity="0.9"/>
+  <text x="32" y="34" text-anchor="middle" font-family="serif" font-size="11" font-weight="700" fill="#D4AF37">H</text>
+  <circle cx="32" cy="47" r="2" fill="#6A1B1A"/>
+  <circle cx="21" cy="30" r="1.6" fill="#C0C0C0"/>
+  <circle cx="43" cy="30" r="1.6" fill="#C0C0C0"/>
+  <circle cx="32" cy="22" r="1.4" fill="#1E5631"/>
+</svg>
