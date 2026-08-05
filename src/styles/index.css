@@ -55,27 +55,49 @@
 
 @layer components {
   .glass {
-    @apply bg-ink-800/70 backdrop-blur-xl border border-silver/10 shadow-panel;
+    background-color: rgba(22, 27, 34, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(192, 192, 192, 0.1);
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
   }
 
   .glass-strong {
-    @apply bg-ink-800/90 backdrop-blur-2xl border border-gold/15 shadow-panel;
+    background-color: rgba(22, 27, 34, 0.9);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.6);
   }
 
   .gold-gradient-text {
-    @apply bg-gradient-to-r from-gold-200 via-gold-400 to-gold-300 bg-clip-text text-transparent;
+    background: linear-gradient(to right, #F6ECC4, #D4AF37, #E4C65E);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .gold-divider {
-    @apply h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.6), transparent);
   }
 
   .input-base {
-    @apply w-full rounded-lg bg-ink-900/70 border border-silver/15 px-4 py-2.5 text-sm text-beige-100 placeholder:text-silver/40 transition-colors focus:border-gold/60 focus:outline-none focus:ring-1 focus:ring-gold/40;
+    @apply w-full rounded-lg bg-ink-900 px-4 py-2.5 text-sm text-beige-100 transition-colors;
+    border: 1px solid rgba(192, 192, 192, 0.15);
+  }
+  .input-base::placeholder {
+    color: rgba(192, 192, 192, 0.4);
+  }
+  .input-base:focus {
+    outline: none;
+    border-color: rgba(212, 175, 55, 0.6);
+    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.4);
   }
 
-  .btn-focus {
-    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+  .btn-focus:focus-visible {
+    outline: 2px solid rgba(212, 175, 55, 1);
+    outline-offset: 2px;
   }
 
   .scroll-thin {
@@ -87,7 +109,8 @@
     height: 6px;
   }
   .scroll-thin::-webkit-scrollbar-thumb {
-    @apply bg-gold/30 rounded-full;
+    background-color: rgba(212, 175, 55, 0.3);
+    border-radius: 9999px;
   }
   .scroll-thin::-webkit-scrollbar-track {
     background: transparent;

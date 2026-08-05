@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import { AppLayout } from "@/layouts/AppLayout";
 import { useAuth } from "@/context/AuthContext";
 import { LoadingState } from "@/components/ui/States";
@@ -37,31 +36,29 @@ function Protected({ children }: { children: React.ReactNode }) {
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/login" element={<Login />} />
-        <Route
-          element={
-            <Protected>
-              <AppLayout />
-            </Protected>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="/timetable" element={<Timetable />} />
-          <Route path="/house-cup" element={<HouseCup />} />
-          <Route path="/grades" element={<Grades />} />
-          <Route path="/homework" element={<Homework />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/owl-mail" element={<OwlMail />} />
-          <Route path="/quidditch" element={<Quidditch />} />
-          <Route path="/castle-map" element={<CastleMap />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </AnimatePresence>
+    <Routes location={location}>
+      <Route path="/login" element={<Login />} />
+      <Route
+        element={
+          <Protected>
+            <AppLayout />
+          </Protected>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="/timetable" element={<Timetable />} />
+        <Route path="/house-cup" element={<HouseCup />} />
+        <Route path="/grades" element={<Grades />} />
+        <Route path="/homework" element={<Homework />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/owl-mail" element={<OwlMail />} />
+        <Route path="/quidditch" element={<Quidditch />} />
+        <Route path="/castle-map" element={<CastleMap />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   );
 }
 

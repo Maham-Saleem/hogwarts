@@ -6,22 +6,25 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { DataProvider } from "@/context/DataContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/styles/index.css";
 
 const root = document.getElementById("root")!;
 
 createRoot(root).render(
   <StrictMode>
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <DataProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </DataProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <DataProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </DataProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </StrictMode>
 );

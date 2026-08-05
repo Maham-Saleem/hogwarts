@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileNav } from "./MobileNav";
@@ -39,11 +38,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       <div className={collapsed ? "min-h-screen transition-[padding] lg:pl-[72px]" : "min-h-screen transition-[padding] lg:pl-64"}>
         <div className="min-h-screen">
           <TopBar onOpenMobileNav={() => setMobileOpen(true)} />
-          <AnimatePresence mode="wait">
-            <main className="mx-auto max-w-[1400px] px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-10">
-              {children ?? <Outlet />}
-            </main>
-          </AnimatePresence>
+          <main className="mx-auto max-w-[1400px] px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-10">
+            {children ?? <Outlet />}
+          </main>
         </div>
       </div>
 
