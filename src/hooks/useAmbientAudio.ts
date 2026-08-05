@@ -13,13 +13,13 @@ interface AmbientSoundConfig {
 }
 
 const SOUND_CONFIGS: Record<AmbientSound, AmbientSoundConfig> = {
-  rain: { noise: true, noiseGain: 0.025, filter: { type: "lowpass", frequency: 3000, Q: 0.5 } },
-  wind: { noise: true, noiseGain: 0.018, filter: { type: "lowpass", frequency: 800, Q: 0.3 } },
-  fire: { noise: true, noiseGain: 0.02, filter: { type: "bandpass", frequency: 200, Q: 0.8 } },
-  thunder: { noise: true, noiseGain: 0.12, filter: { type: "lowpass", frequency: 400, Q: 0.2 }, duration: 3 },
-  owl: { frequency: 420, type: "sine", gain: 0.04, duration: 1.2 },
-  pages: { noise: true, noiseGain: 0.008, filter: { type: "highpass", frequency: 2000, Q: 0.5 }, duration: 0.3 },
-  bells: { frequency: 880, type: "sine", gain: 0.03, duration: 2 },
+  rain: { noise: true, noiseGain: 0.03, filter: { type: "lowpass", frequency: 3000, Q: 0.5 } },
+  wind: { noise: true, noiseGain: 0.02, filter: { type: "lowpass", frequency: 800, Q: 0.3 } },
+  fire: { noise: true, noiseGain: 0.025, filter: { type: "bandpass", frequency: 200, Q: 0.8 } },
+  thunder: { noise: true, noiseGain: 0.15, filter: { type: "lowpass", frequency: 400, Q: 0.2 }, duration: 3 },
+  owl: { frequency: 420, type: "sine", gain: 0.05, duration: 1.2 },
+  pages: { noise: true, noiseGain: 0.01, filter: { type: "highpass", frequency: 2000, Q: 0.5 }, duration: 0.3 },
+  bells: { frequency: 880, type: "sine", gain: 0.04, duration: 2 },
 };
 
 function createNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
@@ -36,10 +36,20 @@ function createNoiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
 export function useAmbientAudio() {
   const ctxRef = useRef<AudioContext | null>(null);
   const [muted, setMuted] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const activeNodes = useRef<Map<string, { nodes: AudioNode[]; source?: AudioBufferSourceNode }>>(new Map());
 
+  const initAudio = useCallback(() => {
+    if (initialized) return;
+    try {
+      ctxRef.current = new AudioContext();
+      ctxRef.current.resume();
+      setInitialized(true);
+    } catch {}
+  }, [initialized]);
+
   const getContext = useCallback(() => {
-    if (!ctxRef.current) {
+    if (!ctxRef.current || ctxRef.current.state === "closed") {
       ctxRef.current = new AudioContext();
     }
     if (ctxRef.current.state === "suspended") {
@@ -54,13 +64,13 @@ export function useAmbientAudio() {
       entry.nodes.forEach((n) => {
         try { n.disconnect(); } catch {}
       });
-      entry.source?.stop();
+      try { entry.source?.stop(); } catch {}
       activeNodes.current.delete(id);
     }
   }, []);
 
   const playSound = useCallback((sound: AmbientSound, id?: string) => {
-    if (muted) return;
+    if (muted || !initialized) return;
     const ctx = getContext();
     const config = SOUND_CONFIGS[sound];
     const soundId = id || `${sound}-${Date.now()}`;
@@ -131,7 +141,7 @@ export function useAmbientAudio() {
     }
 
     return soundId;
-  }, [getContext, stopSound, muted]);
+  }, [getContext, stopSound, muted, initialized]);
 
   const playLoop = useCallback((sound: AmbientSound) => {
     return playSound(sound, `loop-${sound}`);
@@ -149,11 +159,11 @@ export function useAmbientAudio() {
     return () => {
       activeNodes.current.forEach((entry) => {
         entry.nodes.forEach((n) => { try { n.disconnect(); } catch {} });
-        entry.source?.stop();
+        try { entry.source?.stop(); } catch {}
       });
-      ctxRef.current?.close();
+      try { ctxRef.current?.close(); } catch {}
     };
   }, []);
 
-  return { playSound, playLoop, stopLoop, stopAll, muted, setMuted, stopSound };
+  return { initAudio, playSound, playLoop, stopLoop, stopAll, muted, setMuted, stopSound, initialized };
 }
