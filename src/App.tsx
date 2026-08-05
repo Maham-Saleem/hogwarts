@@ -1,81 +1,119 @@
-import { lazy, Suspense, useState, useEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AudioProvider } from "@/context/AudioContext";
 import { DiscoveryProvider } from "@/context/DiscoveryContext";
-import { AppLayout } from "@/layouts/AppLayout";
+import { CastleFrame } from "@/components/castle/CastleFrame";
+import { Landing } from "@/components/castle/Landing";
+import { GreatHall } from "@/components/castle/GreatHall";
+import { RoomView } from "@/components/castle/RoomView";
+import { EnchantedMap } from "@/components/castle/EnchantedMap";
 
-const Landing = lazy(() => import("@/pages/Landing"));
-const Hub = lazy(() => import("@/pages/Hub"));
-const Room = lazy(() => import("@/pages/Room"));
-const CastleMap = lazy(() => import("@/components/navigation/CastleMap"));
-
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen w-full bg-[#090B10] flex items-center justify-center">
-      <motion.div
-        className="text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-      >
-        <motion.div
-          className="w-10 h-10 rounded-full border border-gold/20 mx-auto mb-4"
-          style={{ borderTopColor: "rgba(212,175,55,0.4)" }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        />
-        <p className="font-cormorant text-moonlight/30 text-sm italic">Loading...</p>
-      </motion.div>
-    </div>
-  );
-}
-
-function PageTransition({ children }: { children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: "easeInOut" }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function AnimatedRoutes() {
-  const location = useLocation();
-
-  return (
-    <AnimatePresence mode="wait">
-      <Suspense fallback={<LoadingScreen />}>
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
-          <Route element={<AppLayout />}>
-            <Route path="/hub" element={<PageTransition><Hub /></PageTransition>} />
-            <Route path="/room/:roomId" element={<PageTransition><Room /></PageTransition>} />
-            <Route path="/map" element={<PageTransition><CastleMap /></PageTransition>} />
-          </Route>
-        </Routes>
-      </Suspense>
-    </AnimatePresence>
-  );
-}
+export type CastleLocation =
+  | { type: "approach" }
+  | { type: "hall" }
+  | { type: "room"; roomId: string }
+  | { type: "map" };
 
 export default function App() {
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setLoaded(true), 100);
-    return () => clearTimeout(t);
-  }, []);
+  const [location, setLocation] = useState<CastleLocation>({ type: "approach" });
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  if (!loaded) return <LoadingScreen />;
+  const navigateTo = useCallback((target: CastleLocation) => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    // The camera movement happens via CastleFrame
+    setTimeout(() => {
+      setLocation(target);
+      setTimeout(() => setIsTransitioning(false), 800);
+    }, 600);
+  }, [isTransitioning]);
 
   return (
     <AudioProvider>
       <DiscoveryProvider>
-        <AnimatedRoutes />
+        <div className="min-h-screen w-full overflow-hidden" style={{ backgroundColor: "#0E0D0B" }}>
+          {/* Persistent castle architecture */}
+          <CastleFrame location={location}>
+            <AnimatePresence mode="wait">
+              {location.type === "approach" && (
+                <motion.div
+                  key="approach"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.5 }}
+                  className="absolute inset-0"
+                >
+                  <Landing onComplete={() => navigateTo({ type: "hall" })} />
+                </motion.div>
+              )}
+
+              {location.type === "hall" && (
+                <motion.div
+                  key="hall"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2 }}
+                  className="absolute inset-0"
+                >
+                  <GreatHall
+                    onNavigate={(roomId) => navigateTo({ type: "room", roomId })}
+                    onOpenMap={() => navigateTo({ type: "map" })}
+                  />
+                </motion.div>
+              )}
+
+              {location.type === "room" && (
+                <motion.div
+                  key={`room-${location.roomId}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.2 }}
+                  className="absolute inset-0"
+                >
+                  <RoomView
+                    roomId={location.roomId}
+                    onNavigate={(roomId) => navigateTo({ type: "room", roomId })}
+                    onReturnToHall={() => navigateTo({ type: "hall" })}
+                  />
+                </motion.div>
+              )}
+
+              {location.type === "map" && (
+                <motion.div
+                  key="map"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                  className="absolute inset-0"
+                >
+                  <EnchantedMap
+                    onSelectRoom={(roomId) => navigateTo({ type: "room", roomId })}
+                    onClose={() => navigateTo({ type: "hall" })}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </CastleFrame>
+
+          {/* Camera transition overlay */}
+          <AnimatePresence>
+            {isTransitioning && (
+              <motion.div
+                className="fixed inset-0 z-[9999] pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6 }}
+              >
+                <div className="absolute inset-0" style={{ backgroundColor: "rgba(14,13,11,0.95)" }} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </DiscoveryProvider>
     </AudioProvider>
   );
