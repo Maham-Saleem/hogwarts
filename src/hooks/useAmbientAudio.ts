@@ -8,9 +8,10 @@ type Layer =
   | "fire"
   | "footsteps"
   | "murmur"
-  | "pages";
+  | "pages"
+  | "arpeggio";
 
-type OneShot = "thunder" | "bells" | "owl";
+type OneShot = "thunder" | "bells" | "owl" | "door";
 
 interface ActiveLayer {
   gainNode: GainNode;
@@ -27,18 +28,26 @@ function noiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
 }
 
 const VOLUME: Record<string, number> = {
-  wind: 0.03,
-  rain: 0.035,
-  pad: 0.018,
-  choir: 0.01,
+  wind: 0.028,
+  rain: 0.032,
+  pad: 0.02,
+  choir: 0.012,
   fire: 0.03,
-  footsteps: 0.012,
+  footsteps: 0.011,
   murmur: 0.005,
   pages: 0.006,
+  arpeggio: 0.045,
   thunder: 0.12,
   bells: 0.022,
   owl: 0.03,
+  door: 0.05,
 };
+
+// Original wonder motif — gentle, generic, not derived from any existing score.
+const ARPEGGIO: number[] = [
+  440, 523.25, 659.25, 587.33, 523.25, 392, 329.63, 440,
+  523.25, 659.25, 783.99, 659.25,
+];
 
 export function useAmbientAudio() {
   const ctxRef = useRef<AudioContext | null>(null);
@@ -283,6 +292,47 @@ export function useAmbientAudio() {
             try { g.disconnect(); } catch {}
           }, 400);
         }, 2600);
+      } else if (id === "arpeggio") {
+        let noteIndex = 0;
+        const pluck = () => {
+          const f = ARPEGGIO[noteIndex % ARPEGGIO.length];
+          noteIndex++;
+          const o = c.createOscillator();
+          o.type = "sine";
+          o.frequency.value = f;
+          const o2 = c.createOscillator();
+          o2.type = "sine";
+          o2.frequency.value = f * 2;
+          const g2 = c.createGain();
+          g2.gain.value = 0.12;
+          const lp = c.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.frequency.value = 2400;
+          const g = c.createGain();
+          const t = c.currentTime;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.8, t + 0.02);
+          g.gain.setValueAtTime(0.7, t + 0.1);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+          o.connect(lp);
+          o2.connect(g2);
+          g2.connect(lp);
+          lp.connect(g);
+          g.connect(master);
+          o.start(t);
+          o2.start(t);
+          o.stop(t + 1.6);
+          o2.stop(t + 1.6);
+          setTimeout(() => {
+            try { o.disconnect(); } catch {}
+            try { o2.disconnect(); } catch {}
+            try { g2.disconnect(); } catch {}
+            try { lp.disconnect(); } catch {}
+            try { g.disconnect(); } catch {}
+          }, 1700);
+        };
+        pluck();
+        interval = setInterval(pluck, 950);
       }
 
       master.connect(c.destination);
@@ -346,6 +396,42 @@ export function useAmbientAudio() {
         lp.connect(g);
         s.start();
         nodes.push(s, lp);
+      } else if (id === "door") {
+        const buf = noiseBuffer(c, 3);
+        const s = c.createBufferSource();
+        s.buffer = buf;
+        const lp = c.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 320;
+        lp.Q.value = 0.5;
+        const gN = c.createGain();
+        const t = c.currentTime;
+        gN.gain.setValueAtTime(0, t);
+        gN.gain.linearRampToValueAtTime(0.9, t + 0.15);
+        gN.gain.setValueAtTime(0.7, t + 1.1);
+        gN.gain.exponentialRampToValueAtTime(0.001, t + 2.6);
+        s.connect(lp);
+        lp.connect(gN);
+        gN.connect(g);
+        s.start();
+        nodes.push(s, lp, gN);
+        const o = c.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(110, c.currentTime);
+        o.frequency.exponentialRampToValueAtTime(78, c.currentTime + 2.2);
+        const oLp = c.createBiquadFilter();
+        oLp.type = "lowpass";
+        oLp.frequency.value = 380;
+        const oG = c.createGain();
+        oG.gain.setValueAtTime(0, t);
+        oG.gain.linearRampToValueAtTime(0.4, t + 0.2);
+        oG.gain.exponentialRampToValueAtTime(0.001, t + 2.4);
+        o.connect(oLp);
+        oLp.connect(oG);
+        oG.connect(g);
+        o.start(t);
+        o.stop(t + 2.6);
+        nodes.push(o, oLp, oG);
       }
 
       setTimeout(() => {
