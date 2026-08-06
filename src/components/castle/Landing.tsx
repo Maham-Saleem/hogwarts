@@ -1,107 +1,104 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 
 interface Props {
   onComplete: () => void;
 }
 
+const DURATIONS: Record<number, number> = {
+  1: 5,  // black screen, only audio
+  2: 10, // castle emerges
+  3: 20, // journey across the lake
+  4: 15, // arrival, doors open
+  5: 15, // entering the castle
+  6: 20, // great hall
+};
+
 export function Landing({ onComplete }: Props) {
   const [scene, setScene] = useState(0);
-  const [t, setT] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const started = useRef(false);
-  const sceneRef = useRef(0);
   const audio = useAmbientAudio();
 
-  const advance = useCallback((to: number) => {
-    sceneRef.current = to;
-    setScene(to);
-    setT(0);
-  }, []);
-
   useEffect(() => {
-    if (!started.current) return;
+    if (scene === 0) return;
     const t0 = performance.now();
     let raf: number;
     const loop = () => {
-      setT((performance.now() - t0) / 1000);
+      setElapsed((performance.now() - t0) / 1000);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [started.current]);
+  }, [scene]);
 
   useEffect(() => {
-    if (!started.current) return;
-    const s = sceneRef.current;
-
-    if (s === 1 && t >= 5) {
-      advance(2);
-    } else if (s === 2 && t >= 10) {
-      advance(3);
-    } else if (s === 3 && t >= 15) {
-      advance(4);
-    } else if (s === 4 && t >= 15) {
-      advance(5);
-    } else if (s === 5 && t >= 15) {
-      advance(6);
-    } else if (s === 6 && t >= 30) {
-      advance(7);
-    }
-  }, [t, scene, advance]);
+    const dur = DURATIONS[scene];
+    if (dur && elapsed >= dur) setScene(scene + 1);
+  }, [elapsed, scene]);
 
   useEffect(() => {
-    if (!started.current) return;
-    const s = scene;
-
-    if (s === 1) {
+    if (scene === 0) return;
+    if (scene === 1) {
       audio.start("wind");
       audio.start("rain", 0.02);
-    } else if (s === 2) {
-      audio.start("bells");
-    } else if (s === 3) {
+    } else if (scene === 2) {
       audio.start("pad");
+      audio.fade("pad", 0.012, 6);
+    } else if (scene === 3) {
       audio.start("choir");
-      audio.fade("wind", 0.015, 6);
-      audio.start("owl");
-    } else if (s === 4) {
-      audio.fade("rain", 0.01, 5);
-      audio.fade("wind", 0.005, 4);
+      audio.fade("choir", 0.008, 5);
+    } else if (scene === 4) {
       audio.start("fire");
-    } else if (s === 5) {
+      audio.fade("rain", 0.012, 6);
+    } else if (scene === 5) {
       audio.start("footsteps");
       audio.fade("rain", 0, 3);
-      audio.fade("wind", 0, 2.5);
-      audio.fade("fire", 0.04, 3);
-      audio.fade("pad", 0.008, 4);
-      audio.fade("choir", 0.005, 4);
-    } else if (s === 6) {
+      audio.fade("wind", 0, 3);
+      audio.fade("fire", 0.045, 3);
+    } else if (scene === 6) {
       audio.start("murmur");
-      audio.fade("choir", 0.012, 4);
-      audio.fade("fire", 0.035, 2);
-      audio.start("hedwig");
-    } else if (s === 7) {
+      audio.start("pages");
+      audio.fade("choir", 0.02, 5);
+      audio.fade("pad", 0.03, 5);
+      audio.fade("fire", 0.04, 2);
+    } else if (scene === 7) {
       audio.stopAll();
       onComplete();
     }
   }, [scene, audio, onComplete]);
 
+  useEffect(() => {
+    if (scene < 1 || scene > 4) return;
+    const bell = setInterval(() => audio.play("bells"), 13000);
+    const owl = setInterval(() => audio.play("owl"), 12000);
+    const thunder = setTimeout(() => audio.play("thunder"), 5000);
+    const thunder2 = setTimeout(() => audio.play("thunder"), 15000);
+    return () => {
+      clearInterval(bell);
+      clearInterval(owl);
+      clearTimeout(thunder);
+      clearTimeout(thunder2);
+    };
+  }, [scene, audio]);
+
   const enter = () => {
     if (started.current) return;
     started.current = true;
     audio.init();
-    advance(1);
+    setScene(1);
   };
 
   const skip = () => {
     audio.stopAll();
-    advance(7);
+    setScene(7);
   };
 
   if (scene === 0) {
     return (
       <div
         className="fixed inset-0 flex items-center justify-center cursor-pointer"
-        style={{ backgroundColor: "#1a1c1e" }}
+        style={{ backgroundColor: "#0a0b0c" }}
         onClick={enter}
       >
         <div className="text-center select-none">
@@ -121,7 +118,7 @@ export function Landing({ onComplete }: Props) {
       className="fixed inset-0 overflow-hidden"
       style={{ backgroundColor: "#0a0b0c" }}
     >
-      {scene < 7 && t > 5 && (
+      {scene < 7 && elapsed > 5 && (
         <button
           onClick={skip}
           className="fixed top-6 right-6 z-50 px-4 py-2 cursor-pointer"
@@ -139,12 +136,12 @@ export function Landing({ onComplete }: Props) {
         </button>
       )}
 
-      {scene === 1 && <SceneDarkness t={t} />}
-      {scene === 2 && <SceneReveal t={t} />}
-      {scene === 3 && <SceneApproach t={t} />}
-      {scene === 4 && <SceneDoors t={t} />}
-      {scene === 5 && <SceneEntrance t={t} />}
-      {scene === 6 && <SceneGreatHall t={t} />}
+      {scene === 1 && <SceneDarkness t={elapsed} />}
+      {scene === 2 && <SceneReveal t={elapsed} />}
+      {scene === 3 && <SceneJourney t={elapsed} />}
+      {scene === 4 && <SceneArrival t={elapsed} />}
+      {scene === 5 && <SceneEntrance t={elapsed} />}
+      {scene === 6 && <SceneGreatHall t={elapsed} />}
     </div>
   );
 }
@@ -158,11 +155,11 @@ function SceneDarkness({ t }: { t: number }) {
         style={{
           top: "50%",
           left: "50%",
-          width: 300,
-          height: 300,
+          width: 320,
+          height: 320,
           transform: "translate(-50%, -50%)",
           background:
-            "radial-gradient(circle, rgba(245,196,106,0.04), transparent 60%)",
+            "radial-gradient(circle, rgba(245,196,106,0.035), transparent 60%)",
           opacity,
         }}
       />
@@ -171,9 +168,9 @@ function SceneDarkness({ t }: { t: number }) {
 }
 
 function SceneReveal({ t }: { t: number }) {
-  const reveal = Math.min(t / 8, 1);
-  const fogDrift = Math.sin(t * 0.15) * 3;
-
+  const adjust = Math.min(t / 9, 1);
+  const op = 0.12 + adjust * 0.5;
+  const lightning = t > 3 && t < 3.15 ? 0.18 : 0;
   return (
     <div
       className="absolute inset-0"
@@ -188,22 +185,39 @@ function SceneReveal({ t }: { t: number }) {
           height: 90,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(110,143,191,0.25), rgba(110,143,191,0.06) 45%, transparent 65%)",
-          opacity: reveal,
+            "radial-gradient(circle, rgba(110,143,191,0.22), rgba(110,143,191,0.05) 45%, transparent 65%)",
+          opacity: op,
         }}
       />
 
-      {Array.from({ length: 30 }).map((_, i) => (
+      {Array.from({ length: 34 }).map((_, i) => (
         <div
           key={`s${i}`}
           className="absolute rounded-full"
           style={{
             left: `${5 + ((i * 37) % 90)}%`,
-            top: `${3 + ((i * 23) % 30)}%`,
+            top: `${3 + ((i * 23) % 28)}%`,
             width: 1,
             height: 1,
-            backgroundColor: `rgba(244,239,226,${0.06 + (i % 4) * 0.03})`,
-            opacity: reveal,
+            backgroundColor: `rgba(244,239,226,${0.05 + (i % 4) * 0.03})`,
+            opacity: op,
+          }}
+        />
+      ))}
+
+      {[0, 1, 2].map((i) => (
+        <div
+          key={`c${i}`}
+          className="absolute"
+          style={{
+            top: `${12 + i * 9}%`,
+            left: `${i * 30 - ((t * 3) % 50)}%`,
+            width: "55%",
+            height: 5,
+            borderRadius: 999,
+            background: "rgba(110,143,191,0.04)",
+            filter: "blur(4px)",
+            opacity: op * 0.5,
           }}
         />
       ))}
@@ -211,9 +225,9 @@ function SceneReveal({ t }: { t: number }) {
       <div
         className="absolute left-1/2"
         style={{
-          bottom: "32%",
-          transform: `translateX(-50%) translateX(${fogDrift}px)`,
-          opacity: reveal * 0.5,
+          bottom: "30%",
+          transform: "translateX(-50%)",
+          opacity: op,
         }}
       >
         <CastleSilhouette />
@@ -222,22 +236,14 @@ function SceneReveal({ t }: { t: number }) {
       <div
         className="absolute left-0 right-0"
         style={{
-          bottom: "25%",
-          height: "15%",
+          bottom: "24%",
+          height: "16%",
           background:
-            "linear-gradient(0deg, rgba(26,28,30,0.6), transparent)",
-          opacity: reveal,
+            "linear-gradient(0deg, rgba(26,28,30,0.55), transparent)",
+          opacity: op,
         }}
       />
 
-      <div
-        className="absolute bottom-0 left-0 right-0"
-        style={{
-          height: "28%",
-          background: "linear-gradient(180deg, rgba(10,11,12,0.15), rgba(10,11,12,0.3))",
-          opacity: reveal,
-        }}
-      />
       {[38, 36, 34].map((y, i) => (
         <div
           key={`w${i}`}
@@ -246,45 +252,52 @@ function SceneReveal({ t }: { t: number }) {
             top: `${y}%`,
             height: 1,
             background: `rgba(110,143,191,${0.06 - i * 0.015})`,
-            opacity: reveal,
+            opacity: op,
           }}
         />
       ))}
+
+      {lightning > 0 && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 45% 35%, rgba(110,143,191,0.2), transparent 45%)",
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function SceneApproach({ t }: { t: number }) {
-  const push = 1 + t * 0.006;
+function SceneJourney({ t }: { t: number }) {
+  const push = 1 + t * 0.012;
   const lightning =
-    t > 4 && t < 4.15
-      ? 0.2
-      : t > 9 && t < 9.1
-        ? 0.15
-        : 0;
-
+    t > 6 && t < 6.15 ? 0.2 : t > 13 && t < 13.12 ? 0.16 : 0;
   return (
     <div
-      className="absolute inset-0"
+      className="absolute inset-0 overflow-hidden"
       style={{
         background: "linear-gradient(180deg, #0a0b0c, #1a1c1e, #0a0b0c)",
       }}
     >
       <div
-        className="absolute top-[6%] right-[14%]"
+        className="absolute top-[6%] right-[15%]"
         style={{
           width: 110,
           height: 110,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(110,143,191,0.3), rgba(110,143,191,0.08) 45%, transparent 65%)",
+            "radial-gradient(circle, rgba(110,143,191,0.28), rgba(110,143,191,0.08) 45%, transparent 65%)",
         }}
       />
+
+      <OwlFlying progress={Math.max(0, Math.min(t / 18, 1))} />
 
       <div
         className="absolute left-1/2"
         style={{
-          bottom: "22%",
+          bottom: "18%",
           transform: `translateX(-50%) scale(${push})`,
           transformOrigin: "center bottom",
         }}
@@ -293,13 +306,13 @@ function SceneApproach({ t }: { t: number }) {
       </div>
 
       {[
-        { x: 38, y: 38 },
-        { x: 44, y: 37 },
-        { x: 50, y: 36 },
-        { x: 56, y: 37 },
-        { x: 62, y: 38 },
-        { x: 48, y: 33 },
-        { x: 54, y: 32 },
+        { x: 38, y: 44 },
+        { x: 44, y: 43 },
+        { x: 50, y: 42 },
+        { x: 56, y: 43 },
+        { x: 62, y: 44 },
+        { x: 48, y: 38 },
+        { x: 54, y: 37 },
       ].map((p, i) => (
         <div
           key={`gw${i}`}
@@ -309,9 +322,42 @@ function SceneApproach({ t }: { t: number }) {
             bottom: `${p.y}%`,
             width: 3,
             height: 2.5,
-            backgroundColor: `rgba(245,196,106,${0.35 + (i % 3) * 0.1})`,
+            backgroundColor: `rgba(245,196,106,${0.3 + (i % 3) * 0.1})`,
             boxShadow:
-              "0 0 6px rgba(245,196,106,0.2), 0 0 12px rgba(217,119,50,0.08)",
+              "0 0 6px rgba(245,196,106,0.18), 0 0 12px rgba(217,119,50,0.07)",
+          }}
+        />
+      ))}
+
+      {Array.from({ length: 14 }).map((_, i) => {
+        const x = 24 + (i % 7) * 7 + Math.sin(t * 0.6 + i) * 2;
+        const y = 60 + Math.floor(i / 7) * 5;
+        const shimmer = 0.18 + Math.sin(t * 1.2 + i * 1.4) * 0.12;
+        return (
+          <div
+            key={`rf${i}`}
+            className="absolute"
+            style={{
+              left: `${(x + 22) % 92}%`,
+              top: `${y + 20}%`,
+              width: 14,
+              height: 1,
+              background:
+                "linear-gradient(90deg, transparent, rgba(245,196,106,0.18), transparent)",
+              opacity: Math.max(shimmer, 0),
+            }}
+          />
+        );
+      })}
+
+      {[55, 53].map((y, i) => (
+        <div
+          key={`w${i}`}
+          className="absolute left-0 right-0"
+          style={{
+            top: `${y + 20}%`,
+            height: 1,
+            background: `rgba(110,143,191,${0.05 - i * 0.02})`,
           }}
         />
       ))}
@@ -320,28 +366,18 @@ function SceneApproach({ t }: { t: number }) {
         <div
           className="absolute inset-0"
           style={{
-            background: `radial-gradient(ellipse at 48% 30%, rgba(110,143,191,${lightning}), transparent 45%)`,
+            background:
+              "radial-gradient(ellipse at 48% 30%, rgba(110,143,191,0.2), transparent 45%)",
           }}
         />
       )}
-
-      <div
-        className="absolute left-0 right-0"
-        style={{
-          bottom: "20%",
-          height: "18%",
-          background:
-            "linear-gradient(0deg, rgba(26,28,30,0.5), transparent)",
-        }}
-      />
     </div>
   );
 }
 
-function SceneDoors({ t }: { t: number }) {
-  const doorOpen = Math.min(t / 8, 1);
-  const lightReveal = Math.min(Math.max((t - 6) / 4, 0), 1);
-
+function SceneArrival({ t }: { t: number }) {
+  const doorOpen = Math.min(t / 9, 1);
+  const light = Math.min(Math.max((t - 7) / 4, 0), 1);
   return (
     <div
       className="absolute inset-0"
@@ -356,28 +392,23 @@ function SceneDoors({ t }: { t: number }) {
           height: 100,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(110,143,191,0.28), rgba(110,143,191,0.07) 45%, transparent 65%)",
-          opacity: 1 - doorOpen * 0.5,
+            "radial-gradient(circle, rgba(110,143,191,0.25), rgba(110,143,191,0.06) 45%, transparent 65%)",
+          opacity: 1 - doorOpen * 0.4,
         }}
       />
 
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          transform: "translate(-50%, -50%)",
-        }}
-      >
-        <div className="relative" style={{ width: 280, height: 400 }}>
+      <div className="absolute left-1/2 top-[32%]" style={{ transform: "translateX(-50%)" }}>
+        <div className="relative" style={{ width: 260, height: 340 }}>
           <div
             className="absolute rounded-t-full overflow-hidden"
             style={{
               left: 0,
               top: 0,
-              width: 140,
-              height: 400,
+              width: 130,
+              height: 340,
               background:
-                "linear-gradient(180deg, rgba(59,42,31,0.5), rgba(46,50,56,0.4))",
-              border: "2px solid rgba(94,70,50,0.15)",
+                "linear-gradient(180deg, rgba(59,42,31,0.55), rgba(46,50,56,0.45))",
+              border: "2px solid rgba(94,70,50,0.16)",
               borderRight: "none",
               transformOrigin: "left center",
               transform: `perspective(800px) rotateY(${doorOpen * -55}deg)`,
@@ -387,14 +418,14 @@ function SceneDoors({ t }: { t: number }) {
               className="absolute inset-0"
               style={{
                 backgroundImage:
-                  "repeating-linear-gradient(88deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 10px)",
+                  "repeating-linear-gradient(88deg, transparent, transparent 6px, rgba(0,0,0,0.05) 6px, rgba(0,0,0,0.05) 10px)",
               }}
             />
             <div
-              className="absolute top-1/2 right-4 w-4 h-10 rounded-full"
+              className="absolute top-[42%] right-4 w-4 h-12 rounded-full"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(200,163,74,0.45), rgba(141,115,74,0.3))",
+                  "linear-gradient(135deg, rgba(200,163,74,0.4), rgba(141,115,74,0.28))",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
               }}
             />
@@ -405,11 +436,11 @@ function SceneDoors({ t }: { t: number }) {
             style={{
               right: 0,
               top: 0,
-              width: 140,
-              height: 400,
+              width: 130,
+              height: 340,
               background:
-                "linear-gradient(180deg, rgba(59,42,31,0.5), rgba(46,50,56,0.4))",
-              border: "2px solid rgba(94,70,50,0.15)",
+                "linear-gradient(180deg, rgba(59,42,31,0.55), rgba(26,50,52,0.45))",
+              border: "2px solid rgba(94,70,50,0.16)",
               borderLeft: "none",
               transformOrigin: "right center",
               transform: `perspective(800px) rotateY(${doorOpen * 55}deg)`,
@@ -419,14 +450,14 @@ function SceneDoors({ t }: { t: number }) {
               className="absolute inset-0"
               style={{
                 backgroundImage:
-                  "repeating-linear-gradient(88deg, transparent, transparent 6px, rgba(0,0,0,0.04) 6px, rgba(0,0,0,0.04) 10px)",
+                  "repeating-linear-gradient(88deg, transparent, transparent 6px, rgba(0,0,0,0.05) 6px, rgba(0,0,0,0.05) 10px)",
               }}
             />
             <div
-              className="absolute top-1/2 left-4 w-4 h-10 rounded-full"
+              className="absolute top-[42%] left-4 w-4 h-12 rounded-full"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(200,163,74,0.45), rgba(141,115,74,0.3))",
+                  "linear-gradient(135deg, rgba(200,163,74,0.4), rgba(141,115,74,0.28))",
               }}
             />
           </div>
@@ -434,37 +465,66 @@ function SceneDoors({ t }: { t: number }) {
           <div
             className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse at 50% 50%, rgba(245,196,106,${0.06 + lightReveal * 0.12}), transparent 50%)`,
+              background: `radial-gradient(ellipse at 50% 50%, rgba(245,196,106,${0.05 + light * 0.12}), transparent 52%)`,
             }}
           />
         </div>
       </div>
 
-      {[{ x: "10%", y: "32%" }, { x: "86%", y: "32%" }].map((p, i) => (
+      {[0, 1, 2, 3].map((i) => (
         <div
-          key={i}
+          key={`stp${i}`}
           className="absolute"
-          style={{ left: p.x, top: p.y }}
-        >
+          style={{
+            left: "50%",
+            bottom: `${28 - i * 7}%`,
+            width: `${360 - i * 30}`,
+            height: 4,
+            transform: "translateX(-50%)",
+            background: `rgba(94,70,50,${0.22 - i * 0.03})`,
+          }}
+        />
+      ))}
+
+      {[{ x: "8%", y: "30%" }, { x: "88%", y: "30%" }].map((p, i) => (
+        <div key={i} className="absolute" style={{ left: p.x, top: p.y }}>
           <div
             style={{
-              width: 18,
-              height: 28,
+              width: 16,
+              height: 26,
               borderRadius: "50% 50% 30% 30%",
               background:
-                "radial-gradient(circle, rgba(245,196,106,0.6), rgba(217,119,50,0.3) 60%, transparent)",
+                "radial-gradient(circle, rgba(245,196,106,0.55), rgba(217,119,50,0.28) 60%, transparent)",
               filter: "blur(1px)",
-              opacity: 0.6 + Math.sin(t * 2.5 + i) * 0.15,
+              opacity: 0.6 + Math.sin(t * 2.4 + i) * 0.18,
             }}
           />
           <div
             style={{
               width: 2,
-              height: 20,
+              height: 18,
               margin: "0 auto",
               backgroundColor: "rgba(94,70,50,0.3)",
             }}
           />
+        </div>
+      ))}
+
+      {[{ x: "6%", y: 12 }, { x: "90%", y: 12 }].map((p, i) => (
+        <div key={`rw${i}`} className="absolute" style={{ left: p.x, top: `${p.y}%` }}>
+          {[0, 1, 2].map((r) => (
+            <div
+              key={r}
+              style={{
+                width: 1,
+                height: `${60 + ((t * 40 + i * 40 + r * 25) % 80)}px`,
+                background:
+                  "linear-gradient(180deg, transparent, rgba(110,143,191,0.12), transparent)",
+                position: "relative",
+                left: r * 8,
+              }}
+            />
+          ))}
         </div>
       ))}
     </div>
@@ -473,12 +533,11 @@ function SceneDoors({ t }: { t: number }) {
 
 function SceneEntrance({ t }: { t: number }) {
   const panUp = Math.min(t / 10, 1);
-
   return (
     <div
       className="absolute inset-0"
       style={{
-        background: "linear-gradient(180deg, #2a1e15, #1a1c1e, #2a1e15)",
+        background: "linear-gradient(180deg, #2a1e15, #1a1c1e, #241a12)",
       }}
     >
       <div
@@ -494,22 +553,22 @@ function SceneEntrance({ t }: { t: number }) {
       <div
         className="absolute top-0 left-0 right-0"
         style={{
-          height: "38%",
-          background: "linear-gradient(180deg, rgba(42,30,21,0.35), transparent)",
+          height: "40%",
+          background: "linear-gradient(180deg, rgba(42,30,21,0.4), transparent)",
         }}
       />
 
-      {[10, 28, 72, 90].map((x, i) => (
+      {[10, 27, 73, 90].map((x, i) => (
         <div
           key={`col${i}`}
           className="absolute"
           style={{
             left: `${x}%`,
-            top: "8%",
-            bottom: "12%",
+            top: "6%",
+            bottom: "10%",
             width: "2.5%",
             background:
-              "linear-gradient(90deg, rgba(63,67,74,0.1), rgba(63,67,74,0.18), rgba(63,67,74,0.1))",
+              "linear-gradient(90deg, rgba(63,67,74,0.1), rgba(63,67,74,0.2), rgba(63,67,74,0.1))",
           }}
         />
       ))}
@@ -517,44 +576,30 @@ function SceneEntrance({ t }: { t: number }) {
       <div
         className="absolute left-1/2"
         style={{
-          bottom: "10%",
-          transform: `translateX(-50%) translateY(${(1 - panUp) * 15}px)`,
+          bottom: "8%",
+          transform: `translateX(-50%) translateY(${(1 - panUp) * 18}px)`,
           opacity: 0.4,
         }}
       >
-        <svg width="220" height="130" viewBox="0 0 220 130">
-          {Array.from({ length: 13 }).map((_, i) => (
+        <svg width="230" height="135" viewBox="0 0 230 135">
+          {Array.from({ length: 14 }).map((_, i) => (
             <rect
               key={i}
               x={25 + i * 11}
-              y={115 - i * 8.5}
-              width={170 - i * 11}
+              y={120 - i * 8.4}
+              width={180 - i * 11}
               height={5}
               fill={`rgba(94,70,50,${0.12 + i * 0.015})`}
             />
           ))}
-          <line
-            x1="25"
-            y1="115"
-            x2="168"
-            y2="9"
-            stroke="rgba(141,115,74,0.12)"
-            strokeWidth="1"
-          />
-          <line
-            x1="195"
-            y1="115"
-            x2="52"
-            y2="9"
-            stroke="rgba(141,115,74,0.12)"
-            strokeWidth="1"
-          />
+          <line x1="25" y1="120" x2="173" y2="6" stroke="rgba(141,115,74,0.12)" strokeWidth="1" />
+          <line x1="205" y1="120" x2="57" y2="6" stroke="rgba(141,115,74,0.12)" strokeWidth="1" />
         </svg>
       </div>
 
-      {Array.from({ length: 18 }).map((_, i) => {
-        const x = 12 + (i % 6) * 14 + ((i * 7) % 5) * 2;
-        const y = 6 + Math.floor(i / 6) * 10 + ((i * 3) % 4) * 2;
+      {Array.from({ length: 30 }).map((_, i) => {
+        const x = 6 + (i % 8) * 11;
+        const y = 7 + Math.floor(i / 8) * 9;
         const flicker = 0.5 + Math.sin(t * 1.8 + i * 1.3) * 0.2;
         return (
           <div
@@ -563,10 +608,10 @@ function SceneEntrance({ t }: { t: number }) {
             style={{
               left: `${x}%`,
               top: `${y}%`,
-              width: 35 + (i % 3) * 10,
-              height: 35 + (i % 3) * 10,
+              width: 32 + (i % 4) * 9,
+              height: 32 + (i % 4) * 9,
               borderRadius: "50%",
-              background: `radial-gradient(circle, rgba(245,196,106,${0.03 + (i % 3) * 0.01}), transparent 55%)`,
+              background: `radial-gradient(circle, rgba(245,196,106,${0.028 + (i % 3) * 0.01}), transparent 52%)`,
               opacity: flicker,
             }}
           />
@@ -574,10 +619,10 @@ function SceneEntrance({ t }: { t: number }) {
       })}
 
       {[
-        { x: "18%", y: "22%" },
-        { x: "38%", y: "20%" },
-        { x: "62%", y: "20%" },
-        { x: "82%", y: "22%" },
+        { x: "17%", y: "20%" },
+        { x: "36%", y: "18%" },
+        { x: "64%", y: "18%" },
+        { x: "83%", y: "20%" },
       ].map((p, i) => (
         <div
           key={`pr${i}`}
@@ -588,21 +633,27 @@ function SceneEntrance({ t }: { t: number }) {
             width: 24,
             height: 32,
             border: "1.5px solid rgba(141,115,74,0.15)",
-            background: `linear-gradient(180deg, rgba(94,70,50,${0.1 + i * 0.02}), rgba(42,30,21,${0.15 + i * 0.02}))`,
+            background: `linear-gradient(180deg, rgba(94,70,50,${0.1 + i * 0.02}), rgba(42,30,21,${0.18 + i * 0.02}))`,
           }}
         />
       ))}
 
-      {[{ x: "24%" }, { x: "76%" }].map((p, i) => (
+      {[
+        { x: "24%", c: "rgba(123,45,58,0.2)", d: "rgba(123,45,58,0.1)" },
+        { x: "34%", c: "rgba(52,84,62,0.2)", d: "rgba(52,84,62,0.1)" },
+        { x: "66%", c: "rgba(110,143,191,0.2)", d: "rgba(110,143,191,0.1)" },
+        { x: "76%", c: "rgba(200,163,74,0.2)", d: "rgba(200,163,74,0.1)" },
+      ].map((p, i) => (
         <div
           key={`bn${i}`}
-          className="absolute top-[6%]"
+          className="absolute top-[5%]"
           style={{
             left: p.x,
             width: 15,
             height: 70,
-            background: `linear-gradient(180deg, ${i === 0 ? "rgba(123,45,58,0.2)" : "rgba(200,163,74,0.2)"}, ${i === 0 ? "rgba(123,45,58,0.1)" : "rgba(200,163,74,0.1)"})`,
+            background: `linear-gradient(180deg, ${p.c}, ${p.d})`,
             borderRadius: "0 0 8px 8px",
+            transform: `skewX(${Math.sin(t * 0.6 + i) * 1.4}deg)`,
           }}
         />
       ))}
@@ -611,7 +662,7 @@ function SceneEntrance({ t }: { t: number }) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 35%, rgba(245,196,106,0.06), transparent 45%)",
+            "radial-gradient(ellipse at 50% 32%, rgba(245,196,106,0.055), transparent 48%)",
         }}
       />
     </div>
@@ -619,26 +670,55 @@ function SceneEntrance({ t }: { t: number }) {
 }
 
 function SceneGreatHall({ t }: { t: number }) {
-  const titleOpacity = Math.min(Math.max((t - 3) / 3, 0), 1);
-
+  const title = Math.min(Math.max((t - 2) / 3, 0), 1);
   return (
     <div
       className="absolute inset-0"
       style={{
-        background: "linear-gradient(180deg, #2a1e15, #1a1c1e, #2a1e15)",
+        background: "linear-gradient(180deg, #241a11, #1a1c1e, #241a11)",
       }}
     >
       <div
-        className="absolute top-0 left-0 right-0"
-        style={{
-          height: "42%",
-          background: "linear-gradient(180deg, rgba(42,30,21,0.45), transparent)",
-        }}
-      />
+        className="absolute top-0 left-0 right-0 overflow-hidden"
+        style={{ height: "45%" }}
+      >
+        <div
+          className="absolute left-0 right-0 top-[2%]"
+          style={{
+            height: "40%",
+            background:
+              "radial-gradient(ellipse at 50% 0%, rgba(63,67,74,0.35), transparent 60%)",
+          }}
+        />
+        {Array.from({ length: 40 }).map((_, i) => (
+          <div
+            key={`gcstar${i}`}
+            className="absolute rounded-full"
+            style={{
+              left: `${(i * 53) % 100}%`,
+              top: `${(i * 29) % 26}%`,
+              width: i % 5 === 0 ? 1.4 : 0.8,
+              height: i % 5 === 0 ? 1.4 : 0.8,
+              backgroundColor: `rgba(244,239,226,${0.05 + (i % 4) * 0.04})`,
+              opacity: 0.5 + Math.sin(t * 0.4 + i) * 0.2,
+            }}
+          />
+        ))}
+        <div
+          className="absolute right-[18%] top-[3%]"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(110,143,191,0.5), rgba(110,143,191,0.15) 45%, transparent 65%)",
+          }}
+        />
+      </div>
 
       <svg
         className="absolute top-0 left-0 right-0"
-        style={{ height: "42%" }}
+        style={{ height: "45%" }}
         viewBox="0 0 100 50"
         preserveAspectRatio="none"
       >
@@ -651,9 +731,9 @@ function SceneGreatHall({ t }: { t: number }) {
         <line x1="0" y1="33" x2="100" y2="33" stroke="rgba(94,70,50,0.04)" strokeWidth="0.12" />
       </svg>
 
-      {Array.from({ length: 28 }).map((_, i) => {
-        const x = 6 + (i % 7) * 13 + ((i * 5) % 6);
-        const y = 4 + Math.floor(i / 7) * 8 + ((i * 3) % 4) * 1.5;
+      {Array.from({ length: 45 }).map((_, i) => {
+        const x = 4 + (i % 9) * 11 + ((i * 5) % 6);
+        const y = 4 + Math.floor(i / 9) * 7 + ((i * 3) % 4) * 1.5;
         const flicker = 0.5 + Math.sin(t * 1.6 + i * 1.1) * 0.2;
         return (
           <div
@@ -662,10 +742,10 @@ function SceneGreatHall({ t }: { t: number }) {
             style={{
               left: `${x}%`,
               top: `${y}%`,
-              width: 40 + (i % 4) * 8,
-              height: 40 + (i % 4) * 8,
+              width: 34 + (i % 4) * 8,
+              height: 34 + (i % 4) * 8,
               borderRadius: "50%",
-              background: `radial-gradient(circle, rgba(245,196,106,${0.035 + (i % 3) * 0.01}), transparent 55%)`,
+              background: `radial-gradient(circle, rgba(245,196,106,${0.03 + (i % 3) * 0.01}), transparent 52%)`,
               opacity: flicker,
             }}
           />
@@ -673,12 +753,12 @@ function SceneGreatHall({ t }: { t: number }) {
       })}
 
       {[
-        { x: "3%", w: "13%", c1: "rgba(200,163,74,0.08)", c2: "rgba(123,45,58,0.04)" },
-        { x: "19%", w: "10%", c1: "rgba(123,45,58,0.06)", c2: "rgba(52,84,62,0.03)" },
-        { x: "32%", w: "9%", c1: "rgba(52,84,62,0.05)", c2: "rgba(200,163,74,0.03)" },
-        { x: "59%", w: "9%", c1: "rgba(52,84,62,0.05)", c2: "rgba(123,45,58,0.03)" },
-        { x: "71%", w: "10%", c1: "rgba(123,45,58,0.06)", c2: "rgba(200,163,74,0.03)" },
-        { x: "84%", w: "13%", c1: "rgba(200,163,74,0.08)", c2: "rgba(123,45,58,0.04)" },
+        { x: "3%", w: "13%", c: "rgba(123,45,58,0.03)" },
+        { x: "19%", w: "10%", c: "rgba(52,84,62,0.03)" },
+        { x: "32%", w: "9%", c: "rgba(110,143,191,0.03)" },
+        { x: "59%", w: "9%", c: "rgba(52,84,62,0.03)" },
+        { x: "71%", w: "10%", c: "rgba(123,45,58,0.03)" },
+        { x: "84%", w: "13%", c: "rgba(200,163,74,0.03)" },
       ].map((w, i) => (
         <div
           key={`wg${i}`}
@@ -686,16 +766,16 @@ function SceneGreatHall({ t }: { t: number }) {
           style={{
             left: w.x,
             width: w.w,
-            height: "48%",
-            background: `linear-gradient(180deg, ${w.c1}, ${w.c2}, transparent)`,
+            height: "46%",
+            background: `linear-gradient(180deg, ${w.c}, transparent)`,
             clipPath: "polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%)",
-            opacity: 0.5 + Math.sin(t * 0.8 + i * 1.5) * 0.15,
+            opacity: 0.4 + Math.sin(t * 0.8 + i * 1.5) * 0.12,
           }}
         />
       ))}
 
       <div
-        className="absolute bottom-[20%] left-[5%] right-[5%]"
+        className="absolute bottom-[21%] left-[5%] right-[5%]"
         style={{
           height: 4,
           background:
@@ -703,7 +783,7 @@ function SceneGreatHall({ t }: { t: number }) {
         }}
       />
       <div
-        className="absolute bottom-[14%] left-[11%] right-[11%]"
+        className="absolute bottom-[15%] left-[11%] right-[11%]"
         style={{
           height: 3,
           background:
@@ -711,13 +791,13 @@ function SceneGreatHall({ t }: { t: number }) {
         }}
       />
 
-      {[14, 24, 34, 44, 54, 64, 74].map((x, i) => (
+      {[13, 22, 31, 40, 49, 58, 67, 76, 85].map((x, i) => (
         <div
           key={`st${i}`}
           className="absolute"
           style={{
             left: `${x}%`,
-            bottom: "21%",
+            bottom: "22%",
             width: 5,
             height: 10,
             borderRadius: "2.5px 2.5px 0 0",
@@ -726,19 +806,15 @@ function SceneGreatHall({ t }: { t: number }) {
         />
       ))}
 
-      {[{ x: "4%" }, { x: "92%" }].map((p, i) => (
-        <div
-          key={`fp${i}`}
-          className="absolute bottom-[17%]"
-          style={{ left: p.x }}
-        >
-          <div style={{ width: 40, height: 50, position: "relative" }}>
+      {[{ x: "4%", c: "rgba(217,119,50,0.2)" }, { x: "91%", c: "rgba(217,119,50,0.2)" }].map((p, i) => (
+        <div key={`fp${i}`} className="absolute bottom-[16%]" style={{ left: p.x }}>
+          <div style={{ width: 44, height: 52, position: "relative" }}>
             <div
               className="absolute bottom-0 left-0 right-0 rounded-t"
               style={{
-                height: 28,
+                height: 30,
                 background:
-                  "linear-gradient(180deg, rgba(217,119,50,0.18), rgba(200,163,74,0.1))",
+                  "linear-gradient(180deg, rgba(217,119,50,0.2), rgba(200,163,74,0.1))",
               }}
             />
             <div
@@ -749,32 +825,79 @@ function SceneGreatHall({ t }: { t: number }) {
                 right: "15%",
                 height: 14,
                 background:
-                  "radial-gradient(ellipse at 50% 100%, rgba(217,119,50,0.3), rgba(245,196,106,0.15) 50%, transparent)",
-                opacity: 0.5 + Math.sin(t * 2.2 + i) * 0.15,
+                  "radial-gradient(ellipse at 50% 100%, rgba(217,119,50,0.35), rgba(245,196,106,0.18) 50%, transparent)",
+                opacity: 0.5 + Math.sin(t * 2.2 + i) * 0.18,
               }}
             />
           </div>
         </div>
       ))}
 
+      {[
+        { x: "16%", c: "rgba(123,45,58,0.22)" },
+        { x: "33%", c: "rgba(52,84,62,0.22)" },
+        { x: "50%", c: "rgba(110,143,191,0.22)" },
+        { x: "67%", c: "rgba(200,163,74,0.22)" },
+      ].map((p, i) => (
+        <div
+          key={`hb${i}`}
+          className="absolute top-[30%]"
+          style={{
+            left: p.x,
+            width: 16,
+            height: 90,
+            background: `linear-gradient(180deg, ${p.c}, transparent)`,
+            borderRadius: "0 0 8px 8px",
+            transform: `skewX(${Math.sin(t * 0.5 + i) * 1.6}deg)`,
+          }}
+        />
+      ))}
+
       <div
         className="absolute inset-0 flex flex-col items-center justify-center"
         style={{
-          opacity: titleOpacity,
-          transform: `translateY(${(1 - titleOpacity) * 12}px)`,
+          opacity: title,
+          transform: `translateY(${(1 - title) * 12}px)`,
         }}
       >
         <h1
           className="font-cinzel-decorative text-4xl sm:text-5xl lg:text-6xl font-bold"
           style={{
-            color: "rgba(200,163,74,0.75)",
-            textShadow: "0 0 35px rgba(200,163,74,0.15)",
-            letterSpacing: "0.15em",
+            color: "rgba(200,163,74,0.7)",
+            textShadow: "0 0 35px rgba(200,163,74,0.14)",
+            letterSpacing: "0.18em",
           }}
         >
           Hogwarts
         </h1>
       </div>
+    </div>
+  );
+}
+
+function OwlFlying({ progress }: { progress: number }) {
+  const x = -6 + progress * 112;
+  return (
+    <div
+      className="absolute"
+      style={{
+        top: "9%",
+        left: `${x}%`,
+        opacity: Math.sin(progress * Math.PI) * 0.6,
+      }}
+    >
+      <svg width="46" height="20" viewBox="0 0 46 20">
+        <ellipse cx="23" cy="12" rx="7" ry="4" fill="rgba(20,22,24,0.85)" />
+        <circle cx="29" cy="7" r="3" fill="rgba(20,22,24,0.85)" />
+        <path
+          d="M 18 11 Q 12 2 2 4 Q 9 9 16 12"
+          fill="rgba(20,22,24,0.7)"
+        />
+        <path
+          d="M 28 11 Q 34 2 44 4 Q 37 9 30 12"
+          fill="rgba(20,22,24,0.7)"
+        />
+      </svg>
     </div>
   );
 }
@@ -806,59 +929,62 @@ function CastleSilhouette() {
       <rect x="370" y="126" width="20" height="54" fill="rgba(26,28,30,0.75)" />
       <rect x="374" y="106" width="7" height="20" rx="1" fill="rgba(42,30,21,0.65)" />
       <rect x="394" y="120" width="26" height="60" fill="rgba(26,28,30,0.7)" />
+
+      <g fill="rgba(245,196,106,0.22)">
+        {[
+          [30, 130], [48, 120], [76, 128], [90, 128], [115, 112], [115, 128],
+          [160, 105], [160, 122], [205, 110], [224, 106], [244, 110],
+          [224, 128], [270, 118], [312, 126], [340, 130], [380, 136],
+        ].map(([x, y], i) => (
+          <rect key={`w${i}`} x={x} y={y} width="3.2" height="2.6" rx="0.5" />
+        ))}
+      </g>
     </svg>
   );
 }
 
 function CastleSilhouetteDetail() {
   return (
-    <svg width="560" height="240" viewBox="0 0 560 240">
-      <rect x="10" y="155" width="20" height="85" fill="rgba(26,28,30,0.85)" />
-      <polygon points="10,155 20,132 30,155" fill="rgba(26,28,30,0.8)" />
-      <rect x="35" y="140" width="30" height="100" fill="rgba(26,28,30,0.8)" />
-      <rect x="42" y="98" width="12" height="42" rx="2" fill="rgba(42,30,21,0.8)" />
-      <polygon points="42,98 48,78 54,98" fill="rgba(42,30,21,0.75)" />
-      <rect x="70" y="148" width="38" height="92" fill="rgba(26,28,30,0.78)" />
-      <rect x="112" y="128" width="44" height="112" fill="rgba(26,28,30,0.82)" />
-      <rect x="120" y="68" width="14" height="60" rx="3" fill="rgba(42,30,21,0.82)" />
-      <polygon points="120,68 127,44 134,68" fill="rgba(42,30,21,0.78)" />
-      <rect x="160" y="115" width="55" height="125" fill="rgba(26,28,30,0.88)" />
-      <rect x="170" y="28" width="18" height="87" rx="4" fill="rgba(42,30,21,0.88)" />
-      <polygon points="170,28 179,5 188,28" fill="rgba(42,30,21,0.82)" />
-      <rect x="220" y="120" width="70" height="120" fill="rgba(26,28,30,0.82)" />
-      <polygon points="220,120 255,78 290,120" fill="rgba(26,28,30,0.85)" />
-      <rect x="250" y="82" width="12" height="38" rx="2" fill="rgba(42,30,21,0.78)" />
-      <polygon points="250,82 256,62 262,82" fill="rgba(42,30,21,0.72)" />
-      <rect x="294" y="128" width="46" height="112" fill="rgba(26,28,30,0.8)" />
-      <rect x="302" y="66" width="14" height="62" rx="3" fill="rgba(42,30,21,0.82)" />
-      <polygon points="302,66 309,42 316,66" fill="rgba(42,30,21,0.78)" />
-      <rect x="344" y="142" width="36" height="98" fill="rgba(26,28,30,0.78)" />
-      <rect x="384" y="152" width="30" height="88" fill="rgba(26,28,30,0.8)" />
-      <rect x="390" y="115" width="10" height="37" rx="2" fill="rgba(42,30,21,0.75)" />
-      <polygon points="390,115 395,98 400,115" fill="rgba(42,30,21,0.7)" />
-      <rect x="418" y="155" width="40" height="85" fill="rgba(26,28,30,0.78)" />
-      <rect x="462" y="162" width="24" height="78" fill="rgba(26,28,30,0.8)" />
-      <rect x="466" y="138" width="8" height="24" rx="1" fill="rgba(42,30,21,0.72)" />
-      <rect x="490" y="155" width="32" height="85" fill="rgba(26,28,30,0.78)" />
-      <rect x="526" y="162" width="24" height="78" fill="rgba(26,28,30,0.8)" />
+    <svg width="600" height="250" viewBox="0 0 600 250">
+      <rect x="12" y="160" width="22" height="90" fill="rgba(24,26,28,0.85)" />
+      <polygon points="12,160 23,134 34,160" fill="rgba(24,26,28,0.8)" />
+      <rect x="38" y="145" width="32" height="105" fill="rgba(24,26,28,0.8)" />
+      <rect x="46" y="100" width="12" height="45" rx="2" fill="rgba(42,30,21,0.8)" />
+      <polygon points="46,100 52,78 58,100" fill="rgba(42,30,21,0.75)" />
+      <rect x="75" y="152" width="40" height="98" fill="rgba(24,26,28,0.78)" />
+      <rect x="119" y="132" width="46" height="118" fill="rgba(24,26,28,0.82)" />
+      <rect x="128" y="70" width="14" height="62" rx="3" fill="rgba(42,30,21,0.82)" />
+      <polygon points="128,70 135,45 142,70" fill="rgba(42,30,21,0.78)" />
+      <rect x="169" y="118" width="58" height="132" fill="rgba(24,26,28,0.88)" />
+      <rect x="180" y="28" width="18" height="90" rx="4" fill="rgba(42,30,21,0.88)" />
+      <polygon points="180,28 189,4 198,28" fill="rgba(42,30,21,0.82)" />
+      <rect x="233" y="126" width="72" height="124" fill="rgba(24,26,28,0.82)" />
+      <polygon points="233,126 268,80 303,126" fill="rgba(24,26,28,0.85)" />
+      <rect x="262" y="86" width="12" height="40" rx="2" fill="rgba(42,30,21,0.78)" />
+      <rect x="308" y="133" width="48" height="117" fill="rgba(24,26,28,0.8)" />
+      <rect x="317" y="66" width="14" height="67" rx="3" fill="rgba(42,30,21,0.82)" />
+      <polygon points="317,66 324,42 331,66" fill="rgba(42,30,21,0.78)" />
+      <rect x="360" y="147" width="38" height="103" fill="rgba(24,26,28,0.78)" />
+      <rect x="400" y="156" width="32" height="94" fill="rgba(24,26,28,0.8)" />
+      <rect x="406" y="116" width="11" height="40" rx="2" fill="rgba(42,30,21,0.75)" />
+      <polygon points="406,116 411,96 416,116" fill="rgba(42,30,21,0.7)" />
+      <rect x="436" y="160" width="42" height="90" fill="rgba(24,26,28,0.78)" />
+      <rect x="482" y="166" width="26" height="84" fill="rgba(24,26,28,0.8)" />
+      <rect x="487" y="140" width="9" height="26" rx="1" fill="rgba(42,30,21,0.72)" />
+      <rect x="512" y="160" width="34" height="90" fill="rgba(24,26,28,0.78)" />
+      <rect x="550" y="166" width="26" height="84" fill="rgba(24,26,28,0.8)" />
 
-      {[
-        [18, 168], [50, 155], [88, 162], [128, 145], [128, 168],
-        [175, 130], [175, 155], [175, 178], [240, 135], [260, 132],
-        [280, 135], [260, 155], [260, 178],
-        [316, 142], [316, 165], [362, 155], [396, 128], [396, 152],
-        [438, 165], [474, 172], [506, 168],
-      ].map(([x, y], i) => (
-        <rect
-          key={i}
-          x={x}
-          y={y}
-          width="4"
-          height="3.5"
-          rx="0.5"
-          fill={`rgba(245,196,106,${0.3 + (i % 4) * 0.08})`}
-        />
-      ))}
+      <g fill="rgba(245,196,106,0.25)">
+        {[
+          [20, 172], [52, 158], [90, 166], [134, 148], [134, 170],
+          [150, 166], [182, 132], [182, 156], [182, 180], [245, 140],
+          [265, 136], [285, 140], [265, 158], [265, 180],
+          [330, 146], [330, 168], [380, 158], [412, 130], [412, 152],
+          [456, 168], [494, 176], [528, 172],
+        ].map(([x, y], i) => (
+          <rect key={`d${i}`} x={x} y={y} width="4" height="3.4" rx="0.5" />
+        ))}
+      </g>
     </svg>
   );
 }
