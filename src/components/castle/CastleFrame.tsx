@@ -48,7 +48,7 @@ export function CastleFrame({ children, location }: CastleFrameProps) {
           }} />
           {/* Floor shadow */}
           <div className="absolute bottom-0 left-0 right-0 h-[8%] sm:h-[10%]" style={{
-            background: "linear-gradient(0deg, rgba(0,0,0,0.35), transparent)",
+            background: "linear-gradient(0deg, rgba(16,12,9,0.38), transparent)",
           }} />
           {/* Vignette */}
           <div className="absolute inset-0" style={{

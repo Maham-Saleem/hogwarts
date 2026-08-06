@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AudioProvider } from "@/context/AudioContext";
 import { DiscoveryProvider } from "@/context/DiscoveryContext";
+import { AmbienceProvider } from "@/context/AmbienceProvider";
 import { CastleFrame } from "@/components/castle/CastleFrame";
 import { Landing } from "@/components/castle/Landing";
 import { GreatHall } from "@/components/castle/GreatHall";
@@ -30,6 +31,7 @@ export default function App() {
 
   return (
     <AudioProvider>
+      <AmbienceProvider>
       <DiscoveryProvider>
         <div className="min-h-screen w-full overflow-hidden" style={{ backgroundColor: "#0E0D0B" }}>
           {/* Persistent castle architecture */}
@@ -115,6 +117,7 @@ export default function App() {
           </AnimatePresence>
         </div>
       </DiscoveryProvider>
+      </AmbienceProvider>
     </AudioProvider>
   );
 }

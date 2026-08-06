@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useDiscovery } from "@/context/DiscoveryContext";
+import { useRoomAmbience } from "@/hooks/useRoomAmbience";
 import { rooms } from "@/data/rooms";
 
 const greatHall = rooms.find((r) => r.id === "great-hall")!;
@@ -20,8 +21,9 @@ interface GreatHallProps {
   onOpenMap: () => void;
 }
 
-export function GreatHall({ onNavigate, onOpenMap }: GreatHallProps) {
-  const { isRoomUnlocked, discoveredCount, totalSecrets, visitedRooms } = useDiscovery();
+export function GreatHall({ onNavigate }: GreatHallProps) {
+  const { isRoomUnlocked } = useDiscovery();
+  useRoomAmbience("great-hall");
   const [hoveredDoor, setHoveredDoor] = useState<string | null>(null);
 
   return (
@@ -127,23 +129,6 @@ export function GreatHall({ onNavigate, onOpenMap }: GreatHallProps) {
           </p>
         </motion.div>
 
-        {/* Stats — carved */}
-        <motion.div
-          className="flex justify-center gap-10 mb-5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 2 }}
-        >
-          <div className="text-center">
-            <div className="font-cinzel text-lg text-engraved">{visitedRooms.length}</div>
-            <div className="font-cormorant text-[10px]" style={{ color: "rgba(100,95,88,0.2)" }}>Rooms Visited</div>
-          </div>
-          <div className="text-center">
-            <div className="font-cinzel text-lg text-engraved">{discoveredCount}</div>
-            <div className="font-cormorant text-[10px]" style={{ color: "rgba(100,95,88,0.2)" }}>Secrets Found</div>
-          </div>
-        </motion.div>
-
         {/* ===== LONG DINING TABLES ===== */}
         <motion.div
           className="relative w-full max-w-3xl mb-4"
@@ -187,10 +172,6 @@ export function GreatHall({ onNavigate, onOpenMap }: GreatHallProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2.5, duration: 2 }}
         >
-          <p className="font-cinzel text-[9px] text-center mb-4 tracking-[0.3em] text-engraved">
-            PASSAGES
-          </p>
-
           <div className="flex justify-center gap-8 sm:gap-12">
             {greatHall.connections.map((conn) => {
               const targetRoom = rooms.find((r) => r.id === conn.target);
@@ -269,46 +250,12 @@ export function GreatHall({ onNavigate, onOpenMap }: GreatHallProps) {
             })}
           </div>
         </motion.div>
-
-        {/* Map button — brass plaque */}
-        <motion.button
-          className="mt-6 px-5 py-2 rounded-sm cursor-pointer group"
-          style={{
-            background: "linear-gradient(135deg, rgba(139,105,20,0.06), rgba(184,134,11,0.04))",
-            border: "1px solid rgba(184,134,11,0.08)",
-          }}
-          onClick={onOpenMap}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 3, duration: 1.5 }}
-          whileHover={{ borderColor: "rgba(184,134,11,0.15)" }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <span className="font-cinzel text-[9px] tracking-[0.2em] text-engraved">
-            View the Map
-          </span>
-        </motion.button>
       </div>
 
       {/* ===== FLOOR ===== */}
       <div className="absolute bottom-0 left-0 right-0 h-[12vh]" style={{
         background: "linear-gradient(180deg, transparent, rgba(20,18,16,0.15))",
       }} />
-
-      {/* Discovery progress — bottom left */}
-      <motion.div
-        className="fixed bottom-4 left-4 z-40"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 4 }}
-      >
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: "rgba(212,175,55,0.2)" }} />
-          <span className="font-cinzel text-[8px] tracking-wider" style={{ color: "rgba(80,75,68,0.18)" }}>
-            {discoveredCount}/{totalSecrets}
-          </span>
-        </div>
-      </motion.div>
     </div>
   );
 }

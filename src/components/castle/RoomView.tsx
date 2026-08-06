@@ -6,6 +6,8 @@ import { EffectsRenderer } from "@/components/effects/EffectsRenderer";
 import { InteractiveObject } from "@/components/interactive/InteractiveObject";
 import { SecretReveal } from "@/components/ui/SecretReveal";
 import { EnchantedBook } from "@/components/ui/EnchantedBook";
+import { ArtifactGallery } from "@/components/castle/ArtifactGallery";
+import { useRoomAmbience } from "@/hooks/useRoomAmbience";
 import type { RoomId } from "@/types";
 
 interface RoomViewProps {
@@ -16,6 +18,7 @@ interface RoomViewProps {
 
 export function RoomView({ roomId, onNavigate, onReturnToHall }: RoomViewProps) {
   const { visitRoom, isRoomUnlocked, unlockRoom } = useDiscovery();
+  useRoomAmbience(roomId);
   const room = rooms.find((r) => r.id === roomId);
   const [showSecret, setShowSecret] = useState<string | null>(null);
   const [showBook, setShowBook] = useState(false);
@@ -62,7 +65,7 @@ export function RoomView({ roomId, onNavigate, onReturnToHall }: RoomViewProps) 
 
       {/* Architectural shadows */}
       <div className="absolute inset-0 pointer-events-none" style={{
-        background: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.35) 100%)",
+        background: "linear-gradient(180deg, rgba(16,12,9,0.28) 0%, transparent 18%, transparent 82%, rgba(16,12,9,0.38) 100%)",
       }} />
 
       {/* Content */}
@@ -94,31 +97,35 @@ export function RoomView({ roomId, onNavigate, onReturnToHall }: RoomViewProps) 
         </motion.p>
 
         {/* Room scene */}
-        <motion.div
-          className="relative w-full max-w-2xl aspect-[16/10] rounded-sm overflow-hidden mb-6"
-          style={{
-            background: `linear-gradient(135deg, rgba(25,23,21,0.35), ${room.colors.surface}, rgba(14,13,11,0.4))`,
-            border: "1px solid rgba(55,50,45,0.06)",
-            boxShadow: "inset 0 0 50px rgba(0,0,0,0.25)",
-          }}
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-        >
-          {/* Interactive objects */}
-          {room.interactiveElements.map((element) => (
-            <InteractiveObject
-              key={element.id}
-              element={element}
-              onInteract={handleInteraction}
-            />
-          ))}
+        {room.id === "room-of-requirement" ? (
+          <ArtifactGallery artifacts={room.interactiveElements} />
+        ) : (
+          <motion.div
+            className="relative w-full max-w-2xl aspect-[16/10] rounded-sm overflow-hidden mb-6"
+            style={{
+              background: `linear-gradient(135deg, rgba(25,23,21,0.35), ${room.colors.surface}, rgba(14,13,11,0.4))`,
+              border: "1px solid rgba(55,50,45,0.06)",
+              boxShadow: "inset 0 0 50px rgba(16,12,9,0.3)",
+            }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+          >
+            {/* Interactive objects */}
+            {room.interactiveElements.map((element) => (
+              <InteractiveObject
+                key={element.id}
+                element={element}
+                onInteract={handleInteraction}
+              />
+            ))}
 
-          {/* Floor gradient */}
-          <div className="absolute bottom-0 left-0 right-0 h-[20%]" style={{
-            background: "linear-gradient(0deg, rgba(0,0,0,0.35), transparent)",
-          }} />
-        </motion.div>
+            {/* Floor gradient */}
+            <div className="absolute bottom-0 left-0 right-0 h-[20%]" style={{
+              background: "linear-gradient(0deg, rgba(18,14,10,0.38), transparent)",
+            }} />
+          </motion.div>
+        )}
 
         {/* Enchanted book */}
         {room.quote && (

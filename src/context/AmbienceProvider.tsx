@@ -1,6 +1,8 @@
-import { useRef, useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
+import { useAudio } from "./AudioContext";
 
-type Layer =
+export type Layer =
   | "wind"
   | "rain"
   | "pad"
@@ -9,14 +11,29 @@ type Layer =
   | "footsteps"
   | "murmur"
   | "pages"
-  | "arpeggio";
+  | "arpeggio"
+  | "birds"
+  | "fountain"
+  | "clock"
+  | "quill"
+  | "creak";
 
-type OneShot = "thunder" | "bells" | "owl" | "door";
+export type OneShot = "thunder" | "bells" | "owl" | "door";
 
 interface ActiveLayer {
   gainNode: GainNode;
   nodes: AudioNode[];
   interval?: ReturnType<typeof setInterval>;
+}
+
+interface Engine {
+  init: () => void;
+  start: (id: Layer, vol?: number) => void;
+  play: (id: OneShot, vol?: number) => void;
+  fade: (id: Layer, to: number, dur?: number) => void;
+  stop: (id: Layer, fadeDur?: number) => void;
+  stopAll: () => void;
+  ready: boolean;
 }
 
 function noiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
@@ -37,6 +54,11 @@ const VOLUME: Record<string, number> = {
   murmur: 0.005,
   pages: 0.006,
   arpeggio: 0.045,
+  birds: 0.05,
+  fountain: 0.05,
+  clock: 0.03,
+  quill: 0.03,
+  creak: 0.04,
   thunder: 0.12,
   bells: 0.022,
   owl: 0.03,
@@ -49,8 +71,12 @@ const ARPEGGIO: number[] = [
   523.25, 659.25, 783.99, 659.25,
 ];
 
-export function useAmbientAudio() {
+const Ctx = createContext<Engine | null>(null);
+
+export function AmbienceProvider({ children }: { children: ReactNode }) {
+  const { muted } = useAudio();
   const ctxRef = useRef<AudioContext | null>(null);
+  const masterRef = useRef<GainNode | null>(null);
   const layers = useRef<Map<string, ActiveLayer>>(new Map());
   const [ready, setReady] = useState(false);
 
@@ -64,9 +90,13 @@ export function useAmbientAudio() {
 
   const init = useCallback(() => {
     if (ready) return;
-    ctx();
+    const c = ctx();
+    const master = c.createGain();
+    master.gain.value = muted ? 0 : 1;
+    master.connect(c.destination);
+    masterRef.current = master;
     setReady(true);
-  }, [ready, ctx]);
+  }, [ready, ctx, muted]);
 
   const disconnectLayer = useCallback((entry: ActiveLayer) => {
     if (entry.interval) clearInterval(entry.interval);
@@ -79,15 +109,17 @@ export function useAmbientAudio() {
     (id: Layer, vol?: number) => {
       if (!ready) return;
       const c = ctx();
+      const master = masterRef.current;
+      if (!master) return;
       const existing = layers.current.get(id);
       if (existing) {
         disconnectLayer(existing);
         layers.current.delete(id);
       }
 
-      const master = c.createGain();
-      master.gain.value = 0;
-      const nodes: AudioNode[] = [master];
+      const g = c.createGain();
+      g.gain.value = 0;
+      const nodes: AudioNode[] = [g];
       let interval: ReturnType<typeof setInterval> | undefined;
 
       if (id === "wind") {
@@ -109,7 +141,7 @@ export function useAmbientAudio() {
         lg.connect(lp.frequency);
         lfo.start();
         s.connect(lp);
-        lp.connect(master);
+        lp.connect(g);
         s.start();
         nodes.push(s, lp, lfo, lg);
       } else if (id === "rain") {
@@ -123,7 +155,7 @@ export function useAmbientAudio() {
         lp.frequency.value = 3200;
         lp.Q.value = 0.3;
         s.connect(lp);
-        lp.connect(master);
+        lp.connect(g);
         s.start();
         nodes.push(s, lp);
         const s2 = c.createBufferSource();
@@ -138,7 +170,7 @@ export function useAmbientAudio() {
         g2.gain.value = 0.3;
         s2.connect(bp);
         bp.connect(g2);
-        g2.connect(master);
+        g2.connect(g);
         s2.start();
         nodes.push(s2, bp, g2);
       } else if (id === "pad") {
@@ -147,8 +179,8 @@ export function useAmbientAudio() {
           o.type = "sine";
           o.frequency.value = f;
           o.detune.value = (Math.random() - 0.5) * 4;
-          const g = c.createGain();
-          g.gain.value = 0.3;
+          const og = c.createGain();
+          og.gain.value = 0.3;
           const lfo = c.createOscillator();
           lfo.type = "sine";
           lfo.frequency.value = 0.35 + Math.random() * 0.3;
@@ -157,10 +189,10 @@ export function useAmbientAudio() {
           lfo.connect(lg);
           lg.connect(o.frequency);
           lfo.start();
-          o.connect(g);
-          g.connect(master);
+          o.connect(og);
+          og.connect(g);
           o.start();
-          nodes.push(o, g, lfo, lg);
+          nodes.push(o, og, lfo, lg);
         });
       } else if (id === "choir") {
         [220, 277.18, 329.63, 440].forEach((f) => {
@@ -171,8 +203,8 @@ export function useAmbientAudio() {
           bp.type = "bandpass";
           bp.frequency.value = 800;
           bp.Q.value = 2;
-          const g = c.createGain();
-          g.gain.value = 0.18;
+          const og = c.createGain();
+          og.gain.value = 0.18;
           const lfo = c.createOscillator();
           lfo.type = "sine";
           lfo.frequency.value = 5.5 + Math.random();
@@ -182,10 +214,10 @@ export function useAmbientAudio() {
           lg.connect(o.frequency);
           lfo.start();
           o.connect(bp);
-          bp.connect(g);
-          g.connect(master);
+          bp.connect(og);
+          og.connect(g);
           o.start();
-          nodes.push(o, bp, g, lfo, lg);
+          nodes.push(o, bp, og, lfo, lg);
         });
       } else if (id === "fire") {
         const buf = noiseBuffer(c, 8);
@@ -198,7 +230,7 @@ export function useAmbientAudio() {
         bp.frequency.value = 400;
         bp.Q.value = 1;
         s.connect(bp);
-        bp.connect(master);
+        bp.connect(g);
         s.start();
         nodes.push(s, bp);
         const s2 = c.createBufferSource();
@@ -212,7 +244,7 @@ export function useAmbientAudio() {
         g2.gain.value = 0.4;
         s2.connect(lp);
         lp.connect(g2);
-        g2.connect(master);
+        g2.connect(g);
         s2.start();
         nodes.push(s2, lp, g2);
       } else if (id === "murmur") {
@@ -237,7 +269,7 @@ export function useAmbientAudio() {
         lfo.start();
         s.connect(bp);
         bp.connect(tg);
-        tg.connect(master);
+        tg.connect(g);
         s.start();
         nodes.push(s, bp, lfo, lg, tg);
       } else if (id === "footsteps") {
@@ -250,20 +282,20 @@ export function useAmbientAudio() {
           lp.type = "lowpass";
           lp.frequency.value = 550 + Math.random() * 200;
           lp.Q.value = 1.5;
-          const g = c.createGain();
+          const og = c.createGain();
           const t = c.currentTime;
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.45, t + 0.015);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.45, t + 0.015);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
           s.connect(lp);
-          lp.connect(g);
-          g.connect(master);
+          lp.connect(og);
+          og.connect(g);
           s.start();
           setTimeout(() => {
             try { s.stop(); } catch {}
             try { s.disconnect(); } catch {}
             try { lp.disconnect(); } catch {}
-            try { g.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
           }, 300);
         }, 520);
       } else if (id === "pages") {
@@ -276,20 +308,20 @@ export function useAmbientAudio() {
           hp.type = "highpass";
           hp.frequency.value = 3800;
           hp.Q.value = 0.5;
-          const g = c.createGain();
+          const og = c.createGain();
           const t = c.currentTime;
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.35, t + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.35, t + 0.02);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
           s.connect(hp);
-          hp.connect(g);
-          g.connect(master);
+          hp.connect(og);
+          og.connect(g);
           s.start();
           setTimeout(() => {
             try { s.stop(); } catch {}
             try { s.disconnect(); } catch {}
             try { hp.disconnect(); } catch {}
-            try { g.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
           }, 400);
         }, 2600);
       } else if (id === "arpeggio") {
@@ -308,17 +340,17 @@ export function useAmbientAudio() {
           const lp = c.createBiquadFilter();
           lp.type = "lowpass";
           lp.frequency.value = 2400;
-          const g = c.createGain();
+          const og = c.createGain();
           const t = c.currentTime;
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.8, t + 0.02);
-          g.gain.setValueAtTime(0.7, t + 0.1);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.8, t + 0.02);
+          og.gain.setValueAtTime(0.7, t + 0.1);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
           o.connect(lp);
           o2.connect(g2);
           g2.connect(lp);
-          lp.connect(g);
-          g.connect(master);
+          lp.connect(og);
+          og.connect(g);
           o.start(t);
           o2.start(t);
           o.stop(t + 1.6);
@@ -328,18 +360,168 @@ export function useAmbientAudio() {
             try { o2.disconnect(); } catch {}
             try { g2.disconnect(); } catch {}
             try { lp.disconnect(); } catch {}
-            try { g.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
           }, 1700);
         };
         pluck();
         interval = setInterval(pluck, 950);
+      } else if (id === "birds") {
+        const chirp = () => {
+          const t = c.currentTime;
+          const f0 = 2400 + Math.random() * 900;
+          const o = c.createOscillator();
+          o.type = "sine";
+          o.frequency.setValueAtTime(f0, t);
+          o.frequency.linearRampToValueAtTime(f0 * 0.7, t + 0.05);
+          o.frequency.linearRampToValueAtTime(f0 * 0.92, t + 0.12);
+          const hp = c.createBiquadFilter();
+          hp.type = "highpass";
+          hp.frequency.value = 1500;
+          const og = c.createGain();
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.45, t + 0.01);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+          o.connect(hp);
+          hp.connect(og);
+          og.connect(g);
+          o.start(t);
+          o.stop(t + 0.2);
+          setTimeout(() => {
+            try { o.disconnect(); } catch {}
+            try { hp.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
+          }, 260);
+        };
+        interval = setInterval(() => {
+          chirp();
+          if (Math.random() < 0.45) setTimeout(chirp, 120 + Math.random() * 220);
+        }, 1500 + Math.random() * 600);
+      } else if (id === "fountain") {
+        const buf = noiseBuffer(c, 6);
+        const s = c.createBufferSource();
+        s.buffer = buf;
+        s.loop = true;
+        s.playbackRate.value = 0.6;
+        const bp = c.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = 1200;
+        bp.Q.value = 1.2;
+        const lfo = c.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 3;
+        const lg = c.createGain();
+        lg.gain.value = 600;
+        lfo.connect(lg);
+        lg.connect(bp.frequency);
+        lfo.start();
+        const og = c.createGain();
+        og.gain.value = 0.4;
+        s.connect(bp);
+        bp.connect(og);
+        og.connect(g);
+        s.start();
+        nodes.push(s, bp, lfo, lg, og);
+        interval = setInterval(() => {
+          const o = c.createOscillator();
+          o.type = "sine";
+          o.frequency.value = 1800 + Math.random() * 600;
+          const og2 = c.createGain();
+          const t = c.currentTime;
+          og2.gain.setValueAtTime(0, t);
+          og2.gain.linearRampToValueAtTime(0.3, t + 0.005);
+          og2.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          o.connect(og2);
+          og2.connect(g);
+          o.start(t);
+          o.stop(t + 0.1);
+          setTimeout(() => {
+            try { o.disconnect(); } catch {}
+            try { og2.disconnect(); } catch {}
+          }, 150);
+        }, 700 + Math.random() * 400);
+      } else if (id === "clock") {
+        let n = 0;
+        interval = setInterval(() => {
+          const t = c.currentTime;
+          const o = c.createOscillator();
+          o.type = "triangle";
+          o.frequency.value = n % 2 ? 1500 : 1100;
+          const og = c.createGain();
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.22, t + 0.002);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+          o.connect(og);
+          og.connect(g);
+          o.start(t);
+          o.stop(t + 0.06);
+          setTimeout(() => {
+            try { o.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
+          }, 120);
+          n++;
+        }, 600);
+      } else if (id === "quill") {
+        interval = setInterval(() => {
+          const buf = noiseBuffer(c, 0.12);
+          const s = c.createBufferSource();
+          s.buffer = buf;
+          s.playbackRate.value = 0.8 + Math.random() * 0.3;
+          const bp = c.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.value = 3000;
+          bp.Q.value = 2;
+          const og = c.createGain();
+          const t = c.currentTime;
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.22, t + 0.01);
+          og.gain.linearRampToValueAtTime(0.12, t + 0.06);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          s.connect(bp);
+          bp.connect(og);
+          og.connect(g);
+          s.start(t);
+          setTimeout(() => {
+            try { s.stop(); } catch {}
+            try { s.disconnect(); } catch {}
+            try { bp.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
+          }, 180);
+        }, 1800 + Math.random() * 700);
+      } else if (id === "creak") {
+        const groan = () => {
+          const t = c.currentTime;
+          const o = c.createOscillator();
+          o.type = "sawtooth";
+          o.frequency.setValueAtTime(170 + Math.random() * 60, t);
+          o.frequency.exponentialRampToValueAtTime(115 + Math.random() * 40, t + 0.9);
+          o.frequency.exponentialRampToValueAtTime(150 + Math.random() * 40, t + 1.6);
+          const lp = c.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.frequency.value = 500;
+          const og = c.createGain();
+          og.gain.setValueAtTime(0, t);
+          og.gain.linearRampToValueAtTime(0.4, t + 0.2);
+          og.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
+          o.connect(lp);
+          lp.connect(og);
+          og.connect(g);
+          o.start(t);
+          o.stop(t + 2);
+          setTimeout(() => {
+            try { o.disconnect(); } catch {}
+            try { lp.disconnect(); } catch {}
+            try { og.disconnect(); } catch {}
+          }, 2100);
+        };
+        groan();
+        interval = setInterval(() => groan(), 6000 + Math.random() * 5000);
       }
 
-      master.connect(c.destination);
+      g.connect(master);
       const target = vol ?? VOLUME[id];
-      master.gain.setValueAtTime(0, c.currentTime);
-      master.gain.linearRampToValueAtTime(target, c.currentTime + 2);
-      layers.current.set(id, { gainNode: master, nodes, interval });
+      g.gain.setValueAtTime(0, c.currentTime);
+      g.gain.linearRampToValueAtTime(target, c.currentTime + 2);
+      layers.current.set(id, { gainNode: g, nodes, interval });
     },
     [ready, ctx, disconnectLayer],
   );
@@ -348,9 +530,11 @@ export function useAmbientAudio() {
     (id: OneShot, vol?: number) => {
       if (!ready) return;
       const c = ctx();
+      const master = masterRef.current;
+      if (!master) return;
       const g = c.createGain();
       g.gain.value = vol ?? VOLUME[id];
-      g.connect(c.destination);
+      g.connect(master);
       const nodes: AudioNode[] = [g];
 
       if (id === "bells") {
@@ -474,6 +658,17 @@ export function useAmbientAudio() {
     });
   }, [stop]);
 
+  // master mute
+  useEffect(() => {
+    if (masterRef.current && ctxRef.current) {
+      masterRef.current.gain.setTargetAtTime(
+        muted ? 0 : 1,
+        ctxRef.current.currentTime,
+        0.05,
+      );
+    }
+  }, [muted]);
+
   useEffect(() => {
     return () => {
       layers.current.forEach((e) => disconnectLayer(e));
@@ -482,5 +677,12 @@ export function useAmbientAudio() {
     };
   }, [disconnectLayer]);
 
-  return { init, start, play, fade, stop, stopAll, ready };
+  const value: Engine = { init, start, play, fade, stop, stopAll, ready };
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export function useAmbience(): Engine {
+  const c = useContext(Ctx);
+  if (!c) throw new Error("useAmbience must be used within AmbienceProvider");
+  return c;
 }

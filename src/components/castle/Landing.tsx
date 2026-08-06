@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useAmbientAudio } from "@/hooks/useAmbientAudio";
+import { useAmbience } from "@/context/AmbienceProvider";
 
 interface Props {
   onComplete: () => void;
@@ -15,7 +15,7 @@ export function Landing({ onComplete }: Props) {
   const [scene, setScene] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const started = useRef(false);
-  const audio = useAmbientAudio();
+  const audio = useAmbience();
 
   useEffect(() => {
     if (scene === 0) return;
