@@ -6,8 +6,8 @@ interface Props {
 }
 
 const DURATIONS: Record<number, number> = {
-  1: 75, // single cinematic establishing shot
-  2: 15, // doors open, enter
+  1: 16, // literary title — smoke + candle-glow
+  2: 12, // great doors open, enter
   3: 10, // interior warm fade
 };
 
@@ -37,36 +37,27 @@ export function Landing({ onComplete }: Props) {
   useEffect(() => {
     if (scene === 0) return;
     if (scene === 1) {
-      audio.start("rain", 0.024);
-      audio.start("wind", 0.018);
       audio.start("pad", 0.006);
-      audio.start("arpeggio", 0.02);
-      audio.fade("pad", 0.022, 12);
-      audio.fade("arpeggio", 0.05, 14);
-      const c = setTimeout(() => audio.start("choir", 0.006), 16000);
-      const c2 = setTimeout(() => audio.fade("choir", 0.017, 12), 28000);
+      audio.fade("pad", 0.02, 10);
+      audio.start("choir", 0.005);
+      const c = setTimeout(() => audio.fade("choir", 0.016, 10), 7000);
+      const f = setTimeout(() => audio.start("fire", 0.012), 2000);
       return () => {
         clearTimeout(c);
-        clearTimeout(c2);
+        clearTimeout(f);
       };
     } else if (scene === 2) {
-      audio.start("fire", 0.02);
+      audio.start("fire", 0.03);
       audio.play("door");
-      audio.fade("rain", 0.012, 6);
-      audio.fade("wind", 0.008, 5);
-      audio.fade("choir", 0.022, 6);
-      audio.fade("pad", 0.03, 6);
-      const f = setTimeout(() => audio.start("footsteps", 0.006), 4000);
-      return () => clearTimeout(f);
+      audio.fade("choir", 0.02, 6);
+      audio.fade("pad", 0.028, 6);
+      const steps = setTimeout(() => audio.start("footsteps", 0.005), 4000);
+      return () => clearTimeout(steps);
     } else if (scene === 3) {
       audio.start("murmur");
       audio.start("pages");
-      audio.fade("fire", 0.04, 3);
-      audio.fade("rain", 0, 4);
-      audio.fade("wind", 0, 3);
-      audio.fade("choir", 0.014, 6);
-      audio.fade("pad", 0.02, 6);
-      audio.fade("arpeggio", 0.02, 5);
+      audio.fade("choir", 0.012, 5);
+      audio.fade("pad", 0.02, 5);
       const done = setTimeout(() => {
         audio.stopAll();
         onComplete();
@@ -74,20 +65,6 @@ export function Landing({ onComplete }: Props) {
       return () => clearTimeout(done);
     }
   }, [scene, audio, onComplete]);
-
-  useEffect(() => {
-    if (scene !== 1) return;
-    const bell = setInterval(() => audio.play("bells"), 15000);
-    const owl = setInterval(() => audio.play("owl"), 17000);
-    const thunder = [6000, 22000, 38000, 54000].map((d) =>
-      setTimeout(() => audio.play("thunder"), d),
-    );
-    return () => {
-      clearInterval(bell);
-      clearInterval(owl);
-      thunder.forEach((tt) => clearTimeout(tt));
-    };
-  }, [scene, audio]);
 
   const enter = () => {
     if (started.current) return;
@@ -104,17 +81,29 @@ export function Landing({ onComplete }: Props) {
   if (scene === 0) {
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center cursor-pointer"
-        style={{ backgroundColor: "#080b12" }}
+        className="fixed inset-0 flex items-center justify-center cursor-pointer overflow-hidden"
+        style={{ backgroundColor: "#0a0807" }}
         onClick={enter}
       >
-        <div className="text-center select-none">
+        <Embers />
+        <Smoke t={0} warm />
+        <div className="relative z-10 text-center select-none px-6">
           <p
-            className="font-cormorant text-sm tracking-[0.35em] uppercase"
-            style={{ color: "rgba(200,163,74,0.3)" }}
+            className="font-cormorant text-sm sm:text-base italic tracking-[0.2em]"
+            style={{ color: "rgba(200,163,105,0.35)" }}
           >
-            Click to enter
+            Before the wrought iron, a lantern waits to be lit.
           </p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <div className="h-px w-10" style={{ background: "rgba(200,163,105,0.2)" }} />
+            <span
+              className="font-cinzel text-[9px] tracking-[0.3em] uppercase"
+              style={{ color: "rgba(230,215,180,0.35)" }}
+            >
+              Tap to enter
+            </span>
+            <div className="h-px w-10" style={{ background: "rgba(200,163,105,0.2)" }} />
+          </div>
         </div>
       </div>
     );
@@ -123,154 +112,233 @@ export function Landing({ onComplete }: Props) {
   return (
     <div
       className="fixed inset-0 overflow-hidden"
-      style={{ backgroundColor: "#080b12" }}
+      style={{ backgroundColor: "#0a0807" }}
     >
-      {scene < 4 && elapsed > 4 && (
+      {scene < 4 && elapsed > 3 && (
         <button
           onClick={skip}
           className="fixed top-6 right-6 z-50 px-4 py-2 cursor-pointer"
           style={{
-            border: "1px solid rgba(200,163,74,0.15)",
-            backgroundColor: "rgba(8,11,18,0.6)",
+            border: "1px solid rgba(200,163,105,0.15)",
+            backgroundColor: "rgba(10,8,7,0.6)",
           }}
         >
           <span
             className="font-cinzel text-[10px] tracking-[0.2em] uppercase"
-            style={{ color: "rgba(232,223,201,0.3)" }}
+            style={{ color: "rgba(240,225,200,0.3)" }}
           >
             Skip
           </span>
         </button>
       )}
 
-      {scene === 1 && <Establishing t={elapsed} />}
+      {scene === 1 && <Title t={elapsed} />}
       {scene === 2 && <Doors t={elapsed} />}
       {scene === 3 && <Interior t={elapsed} />}
     </div>
   );
 }
 
-/* ============ SCENE 1: CINEMATIC ESTABLISHING SHOT ============ */
-function Establishing({ t }: { t: number }) {
-  // single, imperceptible cinema dolly push toward the castle
-  const push = 1 + (t / 75) * 0.08;
-  const rise = t * 0.25;
-  const lightning = lightningAt(t);
+/* ============ SCENE 1: LITERARY TITLE ============ */
+function Title({ t }: { t: number }) {
+  const titleIn = Math.min(Math.max((t - 1) / 2.5, 0), 1);
+  const subtitleIn = Math.min(Math.max((t - 4) / 2, 0), 1);
+  const resolve = Math.min(Math.max((t - 9) / 5, 0), 1);
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{
-          transform: `scale(${push}) translateY(${-rise}px)`,
-          transformOrigin: "50% 60%",
-        }}
-      >
-        <img
-          src="/castle-establishing.jpg"
-          alt="Ancient castle at night across a lake"
-          className="w-full h-full object-cover"
-          style={{
-            filter: "brightness(0.7) saturate(1.05) contrast(1.05)",
-          }}
-        />
-        {/* atmospheric grading */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(20,32,58,0.28) 0%, transparent 35%, rgba(6,10,20,0.4) 100%)",
-            mixBlendMode: "multiply",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at 50% 42%, transparent 55%, rgba(90,120,165,0.14) 100%)",
-            mixBlendMode: "soft-light",
-          }}
-        />
-        <Mist t={t} />
-      </div>
-
-      {/* gentle rain */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(103deg, transparent 0, transparent 2px, rgba(150,175,214,0.05) 3px, transparent 4px)",
-          opacity: 0.26 + Math.sin(t * 0.3) * 0.04,
-          transform: `translateY(${t * 5}px)`,
-        }}
-      />
-
-      {/* distant lightning flash */}
-      {lightning > 0 && (
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at 50% 40%, rgba(214,228,255,0.4), transparent 55%)",
-            mixBlendMode: "screen",
-          }}
-        />
-      )}
-
-      {/* film grain */}
-      <FilmGrain />
-
+      {/* warm atmospheric base */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 46%, transparent 48%, rgba(3,5,9,0.6) 100%)",
+            "radial-gradient(ellipse at 50% 42%, rgba(74,50,26,0.4), rgba(20,13,9,0.85) 70%)",
         }}
       />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 60%, rgba(255,190,120,0.12), transparent 55%)",
+          opacity: 0.5 + Math.sin(t * 0.3) * 0.1,
+        }}
+      />
+
+      {/* drifting smoke behind the lettering */}
+      <Smoke t={t} warm />
+      <CandleGlow t={t} />
+
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
+        style={{ opacity: 1 - resolve * 0.9, transform: `scale(${1 + resolve * 0.05})` }}
+      >
+        {/* glowing star over the i */}
+        <div
+          className="mb-6"
+          style={{
+            opacity: titleIn,
+            transform: `scale(${0.6 + titleIn * 0.4})`,
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-full"
+            style={{
+              background: "radial-gradient(circle, rgba(255,206,140,0.5), transparent 65%)",
+              boxShadow: "0 0 34px rgba(255,190,120,0.35)",
+            }}
+          />
+        </div>
+
+        <h1
+          className="font-cinzel-decorative text-4xl sm:text-5xl lg:text-6xl font-bold"
+          style={{
+            opacity: titleIn,
+            transform: `scale(${0.94 + titleIn * 0.06}) translateY(${(1 - titleIn) * 16}px)`,
+            color: "rgba(216,178,110,0.8)",
+            textShadow:
+              "0 0 24px rgba(216,178,110,0.18), 0 2px 2px rgba(0,0,0,0.5)",
+            letterSpacing: "0.18em",
+          }}
+        >
+          {["H", "O", "G", "W", "A", "R", "T", "S"].map((ch, i) => (
+            <span
+              key={i}
+              className="inline-block"
+              style={{
+                opacity: titleIn,
+                transform: `translateY(${(1 - titleIn) * (8 + (i % 3) * 6)}px)`,
+                animation: `flicker 3.5s ease-in-out ${i * 0.35}s infinite alternate`,
+              }}
+            >
+              {ch}
+            </span>
+          ))}
+        </h1>
+
+        <div
+          className="mx-auto mt-4 h-px"
+          style={{
+            width: `${120 * subtitleIn}px`,
+            background: "linear-gradient(90deg, transparent, rgba(216,178,110,0.4), transparent)",
+            opacity: subtitleIn,
+          }}
+        />
+
+        <p
+          className="font-cormorant text-sm sm:text-base italic mt-4"
+          style={{
+            opacity: subtitleIn,
+            color: "rgba(226,203,160,0.45)",
+            transform: `translateY(${(1 - subtitleIn) * 10}px)`,
+            textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+          }}
+        >
+          a digital love letter to a place of towers
+        </p>
+      </div>
+
+      {/* faint resolve cue */}
+      <div
+        className="absolute bottom-[12%] left-1/2 -translate-x-1/2"
+        style={{ opacity: resolve * 0.5 }}
+      >
+        <span className="font-cinzel text-[9px] tracking-[0.25em] uppercase" style={{ color: "rgba(230,205,160,0.25)" }}>
+          the doors are heavy with years
+        </span>
+      </div>
+
+      <FilmGrain />
+      <Vignette />
     </div>
   );
 }
 
-function lightningAt(t: number): number {
-  const flashes: [number, number, number][] = [
-    [7, 0.1, 0.55],
-    [22, 0.1, 0.4],
-    [38, 0.1, 0.5],
-    [54, 0.1, 0.42],
-  ];
-  for (const [start, span, amp] of flashes) {
-    if (t >= start && t < start + span) return amp * Math.random();
-  }
-  return 0;
-}
-
-function Mist({ t }: { t: number }) {
+/* ============ AMBIENT LAYERS ============ */
+function Smoke({ t, warm = false }: { t: number; warm?: boolean }) {
+  const tint = warm ? "rgba(170,130,90,0.07)" : "rgba(150,140,150,0.05)";
+  const tint2 = warm ? "rgba(200,160,110,0.1)" : "rgba(170,160,180,0.08)";
   return (
     <div className="absolute inset-0 pointer-events-none">
       {[0, 1, 2, 3].map((i) => (
         <div
-          key={i}
-          className="absolute left-[-20%] right-[-20%]"
+          key={`h${i}`}
+          className="absolute left-[-25%] right-[-25%]"
           style={{
-            top: `${42 + i * 13}%`,
-            height: `${90 - i * 16}px`,
-            background:
-              "linear-gradient(90deg, transparent, rgba(150,190,230,0.05), transparent)",
-            filter: "blur(18px)",
-            transform: `translateX(${(t * (2 + i * 0.4)) % 50}px)`,
+            top: `${40 + i * 14}%`,
+            height: `${110 - i * 18}px`,
+            background: `linear-gradient(90deg, transparent, ${tint}, transparent)`,
+            filter: `blur(${16 + i * 4}px)`,
+            transform: `translateX(${(t * (2.4 + i * 0.5)) % 46}px)`,
           }}
         />
       ))}
       {[0, 1, 2].map((i) => (
         <div
           key={`up${i}`}
-          className="absolute left-[-10%] right-[-10%]"
+          className="absolute left-[-15%] right-[-15%]"
           style={{
-            bottom: `${6 + i * 10}%`,
-            height: `${36 + i * 12}px`,
-            background:
-              "linear-gradient(90deg, transparent, rgba(120,160,180,0.12), transparent)",
-            filter: "blur(20px)",
+            bottom: `${6 + i * 12}%`,
+            height: `${40 + i * 14}px`,
+            background: `linear-gradient(90deg, transparent, ${tint2}, transparent)`,
+            filter: "blur(22px)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function Embers() {
+  const motes = useRef(
+    Array.from({ length: 26 }, (_, i) => ({
+      x: (i * 37) % 100,
+      y: 30 + (i * 53) % 55,
+      size: 2 + (i % 3),
+      dur: 7 + (i % 5) * 2,
+      delay: (i % 8) * 0.7,
+    }))
+  );
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {motes.current.map((m, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: `${m.x}%`,
+            top: `${m.y}%`,
+            width: m.size,
+            height: m.size,
+            backgroundColor: "rgba(255,200,130,0.5)",
+            boxShadow: "0 0 6px rgba(255,190,110,0.5)",
+            animation: `emberrise ${m.dur}s linear ${m.dur * (i % 3)}ms infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CandleGlow({ t }: { t: number }) {
+  const glows = [
+    { x: "18%", y: "20%", s: 40, a: 0.05, d: 2.4 },
+    { x: "82%", y: "24%", s: 34, a: 0.045, d: 3.1 },
+    { x: "24%", y: "74%", s: 30, a: 0.04, d: 2.8 },
+    { x: "77%", y: "78%", s: 36, a: 0.045, d: 3.4 },
+  ];
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {glows.map((g, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: g.x,
+            top: g.y,
+            width: g.s,
+            height: g.s,
+            background: `radial-gradient(circle, rgba(255,190,120,${g.a * (0.7 + Math.sin(t * 0.7 + i) * 0.3)}), transparent 65%)`,
+            animation: `breathe ${g.d}s ease-in-out infinite`,
           }}
         />
       ))}
@@ -298,7 +366,7 @@ function FilmGrain() {
         d[i] = v;
         d[i + 1] = v;
         d[i + 2] = v;
-        d[i + 3] = 10;
+        d[i + 3] = 9;
       }
       ctx2d.putImageData(image, 0, 0);
       raf = requestAnimationFrame(loop);
@@ -310,41 +378,37 @@ function FilmGrain() {
     <canvas
       ref={ref}
       className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ opacity: 0.12, mixBlendMode: "overlay" }}
+      style={{ opacity: 0.1, mixBlendMode: "overlay" }}
+    />
+  );
+}
+
+function Vignette() {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        background: "radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(4,3,2,0.6) 100%)",
+      }}
     />
   );
 }
 
 /* ============ SCENE 2: DOORS ============ */
 function Doors({ t }: { t: number }) {
-  const open = Math.min(t / 10, 1);
-  const light = Math.min(Math.max((t - 6) / 6, 0), 1);
+  const open = Math.min(t / 9, 1);
+  const light = Math.min(Math.max((t - 5) / 5, 0), 1);
   return (
     <div
       className="absolute inset-0 flex items-center justify-center overflow-hidden"
       style={{
-        background: "linear-gradient(180deg, #0a0f1a, #151d2b)",
+        background: "linear-gradient(180deg, #120d09, #1c1610)",
       }}
     >
       <div
         className="absolute inset-0"
         style={{
-          transform: `scale(${1 + open * 0.18})`,
-          opacity: 1 - open * 0.5,
-        }}
-      >
-        <img
-          src="/castle-establishing.jpg"
-          alt=""
-          className="w-full h-full object-cover"
-          style={{ filter: "brightness(0.6)" }}
-        />
-      </div>
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 50% 46%, rgba(255,206,140,${0.06 + light * 0.3}), transparent 52%)`,
+          background: `radial-gradient(ellipse at 50% 46%, rgba(255,206,140,${0.08 + light * 0.32}), transparent 52%)`,
         }}
       />
 
@@ -352,14 +416,14 @@ function Doors({ t }: { t: number }) {
         <div
           className="absolute -inset-10 rounded-t-[140px]"
           style={{
-            border: "16px solid #121a28",
+            border: "16px solid #14100c",
             borderBottom: "none",
             boxShadow: "inset 0 0 60px rgba(0,0,0,0.6)",
           }}
         />
         <div
           className="absolute inset-0 overflow-hidden rounded-t-[120px]"
-          style={{ backgroundColor: "#0b101b" }}
+          style={{ backgroundColor: "#0c0a08" }}
         >
           <div
             className="absolute left-0 top-0 bottom-0"
@@ -393,19 +457,18 @@ function Doors({ t }: { t: number }) {
       </div>
 
       {[{ x: "16%", y: "36%" }, { x: "81%", y: "36%" }].map((p, i) => (
-        <div key={i} className="absolute" style={{ left: p.x, top: p.y }}>
+        <div key={i} className="absolute" style={{ left: p.x, top: p.y, opacity: light * 0.5 }}>
           <div
             style={{
               width: 20,
               height: 34,
               borderRadius: "50% 50% 30% 30%",
               background:
-                "radial-gradient(circle, rgba(255,200,120,0.7), rgba(232,150,60,0.35) 60%, transparent)",
+                "radial-gradient(circle, rgba(255,210,130,0.8), rgba(240,160,70,0.4) 60%, transparent)",
               filter: "blur(1.5px)",
-              opacity: 0.65 + Math.sin(t * 2.4 + i) * 0.2,
             }}
           />
-          <div style={{ width: 2, height: 26, margin: "0 auto", backgroundColor: "#0c111c" }} />
+          <div style={{ width: 2, height: 26, margin: "0 auto", backgroundColor: "#0d0b08" }} />
         </div>
       ))}
 
@@ -413,7 +476,7 @@ function Doors({ t }: { t: number }) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 45%, rgba(200,163,74,0.06), transparent 60%)",
+            "radial-gradient(ellipse at 50% 45%, rgba(200,163,105,0.06), transparent 60%)",
         }}
       />
     </div>
@@ -428,19 +491,19 @@ function Interior({ t }: { t: number }) {
     <div
       className="absolute inset-0"
       style={{
-        background: "linear-gradient(180deg, #3a2c18, #241a11, #1a1c1e)",
+        background: "linear-gradient(180deg, #3a2c18, #241a11, #18171a)",
       }}
     >
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 45%, rgba(255,200,130,0.16), transparent 55%)",
+            "radial-gradient(ellipse at 50% 45%, rgba(255,205,135,0.18), transparent 55%)",
           opacity: warm,
         }}
       />
       {Array.from({ length: 40 }).map((_, i) => {
-        const flicker = 0.4 + Math.sin(t * 1.7 + i * 1.2) * 0.2;
+        const flick = 0.4 + Math.sin(t * 1.7 + i * 1.2) * 0.2;
         return (
           <div
             key={`c${i}`}
@@ -450,8 +513,8 @@ function Interior({ t }: { t: number }) {
               top: `${4 + Math.floor(i / 9) * 9}%`,
               width: 26 + (i % 4) * 10,
               height: 26 + (i % 4) * 10,
-              background: `radial-gradient(circle, rgba(255,206,140,${0.04 + (i % 3) * 0.012}), transparent 55%)`,
-              opacity: flicker,
+              background: `radial-gradient(circle, rgba(255,206,140,${0.05 + (i % 3) * 0.014}), transparent 55%)`,
+              opacity: flick,
             }}
           />
         );
@@ -466,8 +529,8 @@ function Interior({ t }: { t: number }) {
         <h1
           className="font-cinzel-decorative text-4xl sm:text-5xl lg:text-6xl font-bold"
           style={{
-            color: "rgba(200,163,74,0.72)",
-            textShadow: "0 0 40px rgba(200,163,74,0.18)",
+            color: "rgba(216,178,110,0.75)",
+            textShadow: "0 0 40px rgba(216,178,110,0.18)",
             letterSpacing: "0.18em",
           }}
         >

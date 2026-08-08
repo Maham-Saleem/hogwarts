@@ -190,3 +190,20 @@
   .perspective-corridor { perspective: 1200px; }
   .perspective-room { perspective: 800px; }
 }
+
+/* ===== LANDING ANIMATIONS ===== */
+@keyframes flicker {
+  from { text-shadow: 0 0 18px rgba(216,178,110,0.1), 0 2px 2px rgba(0,0,0,0.5); }
+  to { text-shadow: 0 0 42px rgba(216,178,110,0.32), 0 2px 2px rgba(0,0,0,0.5); }
+}
+
+@keyframes emberrise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  12% { opacity: 0.8; }
+  100% { transform: translateY(-140px) scale(0.4); opacity: 0; }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.22); opacity: 1; }
+}
