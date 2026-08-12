@@ -8,8 +8,39 @@ interface Props {
 
 export function Landing({ onComplete }: Props) {
   const [scene, setScene] = useState(0);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const started = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const audio = useAmbience();
+
+  // the video is mounted from the very start (hidden) so it *preloads during*
+  // the gate and is ready the instant the visitor taps to enter.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.onended = () => setScene(2);
+    v.onplaying = () => setVideoPlaying(true);
+    v.onwaiting = () => setVideoPlaying(false);
+    return () => {
+      v.onended = null;
+      v.onplaying = null;
+      v.onwaiting = null;
+    };
+  }, []);
+
+  // trigger playback once the visitor enters
+  useEffect(() => {
+    if (scene !== 1) return;
+    const v = videoRef.current;
+    if (!v) return;
+    v.play()
+      .then(() => setVideoPlaying(true))
+      .catch(() => {
+        // if audio autoplay is blocked, fall back to muted
+        v.muted = true;
+        v.play().then(() => setVideoPlaying(true)).catch(() => {});
+      });
+  }, [scene]);
 
   // soft bed once the video begins
   useEffect(() => {
@@ -38,6 +69,7 @@ export function Landing({ onComplete }: Props) {
     if (started.current) return;
     started.current = true;
     audio.init();
+    setVideoPlaying(false);
     setScene(1);
   };
 
@@ -46,42 +78,87 @@ export function Landing({ onComplete }: Props) {
     onComplete();
   };
 
-  if (scene === 0) {
-    return (
-      <div
-        className="fixed inset-0 flex items-center justify-center cursor-pointer overflow-hidden"
-        style={{ backgroundColor: "#0a0807" }}
-        onClick={enter}
-      >
-        <Embers />
-        <div className="relative z-10 text-center select-none px-6">
-          <p
-            className="font-cormorant text-sm sm:text-base italic tracking-[0.2em]"
-            style={{ color: "rgba(200,163,105,0.35)" }}
-          >
-            Before the wrought iron, a lantern waits to be lit.
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <div className="h-px w-10" style={{ background: "rgba(200,163,105,0.2)" }} />
-            <span
-              className="font-cinzel text-[9px] tracking-[0.3em] uppercase"
-              style={{ color: "rgba(230,215,180,0.35)" }}
-            >
-              Tap to enter
-            </span>
-            <div className="h-px w-10" style={{ background: "rgba(200,163,105,0.2)" }} />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const showVideo = scene === 1;
+  const showVeil = scene === 1 && !videoPlaying;
 
   return (
     <div
       className="fixed inset-0 overflow-hidden"
       style={{ backgroundColor: "#0a0807" }}
     >
-      {scene < 3 && (
+      {/* always mounted so it preloads during the gate */}
+      <video
+        ref={videoRef}
+        src="/intro.mp4"
+        preload="auto"
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+        style={{
+          opacity: showVideo ? 1 : 0,
+          filter: "brightness(0.96) saturate(1.04)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* warm 'waking' veil shown only while the first frames are being read */}
+      {showVeil && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{
+            background: "radial-gradient(ellipse at 50% 45%, rgba(60,42,24,0.55), rgba(10,8,7,0.9) 78%)",
+          }}
+        >
+          <motion.div
+            className="w-14 h-14 rounded-full"
+            style={{
+              background: "radial-gradient(circle, rgba(255,200,140,0.5), transparent 66%)",
+              boxShadow: "0 0 40px rgba(255,190,120,0.3)",
+            }}
+            animate={{ opacity: [0.4, 1, 0.4], scale: [0.96, 1.05, 0.96] }}
+            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <p
+            className="absolute mt-24 font-cormorant italic text-sm tracking-[0.25em]"
+            style={{ color: "rgba(230,205,165,0.4)" }}
+          >
+            the lantern catches flame…
+          </p>
+        </div>
+      )}
+
+      {/* GATE */}
+      {scene === 0 && (
+        <div
+          className="absolute inset-0 flex items-center justify-center cursor-pointer"
+          onClick={enter}
+        >
+          <Embers />
+          <div className="relative z-10 text-center select-none px-6">
+            <p
+              className="font-cormorant text-sm sm:text-base italic tracking-[0.2em]"
+              style={{ color: "rgba(200,163,105,0.35)" }}
+            >
+              Before the wrought iron, a lantern waits to be lit.
+            </p>
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <div className="h-px w-10" style={{ background: "rgba(200,163,105,0.2)" }} />
+              <span
+                className="font-cinzel text-[9px] tracking-[0.3em] uppercase"
+                style={{ color: "rgba(230,215,180,0.35)" }}
+              >
+                Tap to enter
+              </span>
+              <div className="h-px w-10" style={{ background: "rgba(200,163,105,0.2)" }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TITLE */}
+      {scene === 2 && <Interior />}
+
+      {/* SKIP */}
+      {scene === 1 && (
         <button
           onClick={skip}
           className="fixed top-6 right-6 z-50 px-4 py-2 cursor-pointer"
@@ -98,40 +175,7 @@ export function Landing({ onComplete }: Props) {
           </span>
         </button>
       )}
-
-      {scene === 1 && <VideoIntro onEnded={() => setScene(2)} />}
-      {scene === 2 && <Interior />}
     </div>
-  );
-}
-
-/* ============ SCENE 1: VIDEO INTRO ============ */
-function VideoIntro({ onEnded }: { onEnded: () => void }) {
-  const ref = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    const v = ref.current;
-    if (!v) return;
-    v.onended = onEnded;
-    v.play()
-      .catch(() => {
-        // if audio autoplay is blocked, fall back to muted
-        v.muted = true;
-        v.play().catch(() => {});
-      });
-    return () => {
-      v.onended = null;
-    };
-  }, [onEnded]);
-
-  return (
-    <video
-      ref={ref}
-      src="/intro.mp4"
-      playsInline
-      className="absolute inset-0 w-full h-full object-cover"
-      style={{ filter: "brightness(0.96) saturate(1.04)" }}
-    />
   );
 }
 
