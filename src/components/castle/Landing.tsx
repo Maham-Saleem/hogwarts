@@ -178,7 +178,7 @@ export function Landing({ onComplete }: Props) {
         transition={{ duration: 0.55, ease: "easeInOut" }}
       />
 
-      {/* ===== SKIP — always present, never loud ===== */}
+      {/* ===== SKIP — always present, clearly visible but restrained ===== */}
       <AnimatePresence>
         {scene !== "archive" && (
           <motion.button
@@ -188,13 +188,22 @@ export function Landing({ onComplete }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.4 }}
+            transition={{ duration: 1.2 }}
+            whileHover={{ borderColor: "rgba(182,154,90,0.55)", color: "rgba(232,223,201,0.95)" }}
+            style={{
+              padding: "9px 16px",
+              borderRadius: 2,
+              background: "rgba(16,26,38,0.55)",
+              border: "1px solid rgba(182,154,90,0.32)",
+              backdropFilter: "blur(3px)",
+              boxShadow: "0 2px 14px rgba(0,0,0,0.45)",
+            }}
           >
             <span
-              className="font-cinzel text-[10px] tracking-[0.28em] uppercase"
-              style={{ color: "rgba(216,206,184,0.4)" }}
+              className="font-cinzel text-[10px] sm:text-[11px] tracking-[0.26em] uppercase"
+              style={{ color: "rgba(232,223,201,0.82)" }}
             >
-              Skip Intro <span style={{ color: "rgba(182,154,90,0.55)" }}>→</span>
+              Skip Intro <span style={{ color: "rgba(217,168,94,0.9)" }}>→</span>
             </span>
           </motion.button>
         )}
